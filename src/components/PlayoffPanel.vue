@@ -9,6 +9,7 @@ import {
   StarOutlined,
   TrophyOutlined,
 } from '@ant-design/icons-vue';
+import PasswordConfirm from './PasswordConfirm.vue';
 import SummaryGrid from './SummaryGrid.vue';
 
 const props = defineProps({
@@ -16,6 +17,7 @@ const props = defineProps({
   hasPlayoffSchedule: { type: Boolean, required: true },
   isLeagueComplete: { type: Boolean, required: true },
   playoffVenueCount: { type: Number, required: true },
+  playoffVenueNames: { type: Array, required: true },
   playoffAdvanceCount: { type: Number, required: true },
   manualPlayoffNames: { type: Array, required: true },
   playoffMatches: { type: Array, required: true },
@@ -27,6 +29,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'update:playoffVenueCount',
+  'update:playoffVenueNames',
   'update:playoffAdvanceCount',
   'update:manualPlayoffNames',
   'generate-from-ranking',
@@ -40,6 +43,16 @@ const canGenerateFromRanking = computed(
 
 const qualifiedTeams = computed(() =>
   props.rankedLeagueTeams.slice(0, props.playoffAdvanceCount),
+);
+const qualifiedSlots = computed(() =>
+  Array.from({ length: props.playoffAdvanceCount }, (_, index) => {
+    const team = qualifiedTeams.value[index];
+    return {
+      rank: index + 1,
+      name: canGenerateFromRanking.value && team ? team.name : '待定',
+      settled: canGenerateFromRanking.value && Boolean(team),
+    };
+  }),
 );
 const semifinalMatches = computed(() =>
   props.playoffMatches.filter((match) => match.playoffRole?.startsWith('semifinal')),
@@ -55,6 +68,12 @@ function updateManualName(index, value) {
   const nextNames = [...props.manualPlayoffNames];
   nextNames[index] = value;
   emit('update:manualPlayoffNames', nextNames);
+}
+
+function updatePlayoffVenueName(index, value) {
+  const nextNames = [...props.playoffVenueNames];
+  nextNames[index] = value;
+  emit('update:playoffVenueNames', nextNames);
 }
 
 function getStatusColor(status) {
@@ -115,54 +134,81 @@ function getPlacement(match, side) {
       <template v-if="hasPlayoffSchedule" #extra>
         <div class="card-head-tools">
           <SummaryGrid :summary="summary" :progress-percent="progressPercent" />
-          <a-popconfirm
-            title="确定清空排位赛程吗？"
-            ok-text="清空"
-            cancel-text="取消"
+          <PasswordConfirm
+            title="清空排位赛"
+            description="此操作会清空排位赛程和已录入进度。"
+            ok-text="清空排位"
             @confirm="emit('reset')"
           >
             <a-button danger class="tool-action-button">
               <template #icon><DeleteOutlined /></template>
               清空排位
             </a-button>
-          </a-popconfirm>
+          </PasswordConfirm>
         </div>
       </template>
 
       <div v-if="!hasPlayoffSchedule" class="playoff-setup">
+        <div class="playoff-venue-config">
+          <div class="setup-editor-head">
+            <div>
+              <h3 class="setup-editor-title">场地设置</h3>
+              <p>两种生成方式共用这组场地。</p>
+            </div>
+            <a-form layout="inline" class="playoff-inline-form playoff-venue-count-form">
+              <a-form-item label="场地数">
+                <a-input-number
+                  :value="playoffVenueCount"
+                  :min="1"
+                  :max="12"
+                  class="playoff-number"
+                  @update:value="emit('update:playoffVenueCount', $event)"
+                />
+              </a-form-item>
+            </a-form>
+          </div>
+          <div class="venue-name-editor compact-venue-editor">
+            <label v-for="(_, index) in playoffVenueNames" :key="index" class="team-name-field">
+              <span>场地 {{ index + 1 }}</span>
+              <a-input
+                :value="playoffVenueNames[index]"
+                placeholder="如：6 或 A馆"
+                @update:value="updatePlayoffVenueName(index, $event)"
+              />
+            </label>
+          </div>
+        </div>
+
         <div class="playoff-source">
           <h3>按排名生成</h3>
           <p>积分赛完成后，取前 4 名。</p>
-          <a-space wrap>
-            <span class="field-label">场地</span>
-            <a-input-number
-              :value="playoffVenueCount"
-              :min="1"
-              :max="12"
-              size="small"
-              class="playoff-number"
-              @update:value="emit('update:playoffVenueCount', $event)"
-            />
-            <span class="field-label">晋级名额</span>
-            <a-select
-              :value="playoffAdvanceCount"
-              :options="[{ label: '前 4 名', value: 4 }]"
-              size="small"
-              class="playoff-select"
-              @update:value="emit('update:playoffAdvanceCount', $event)"
-            />
-            <a-button
-              type="primary"
-              class="tool-action-button"
-              :disabled="!canGenerateFromRanking"
-              @click="emit('generate-from-ranking')"
+          <a-form layout="inline" class="playoff-inline-form">
+            <a-form-item label="晋级名额">
+              <a-select
+                :value="playoffAdvanceCount"
+                :options="[{ label: '前 4 名', value: 4 }]"
+                class="playoff-select"
+                @update:value="emit('update:playoffAdvanceCount', $event)"
+              />
+            </a-form-item>
+            <a-form-item>
+              <a-button
+                type="primary"
+                class="tool-action-button"
+                :disabled="!canGenerateFromRanking"
+                @click="emit('generate-from-ranking')"
+              >
+                <template #icon><PlayCircleOutlined /></template>
+                生成排位
+              </a-button>
+            </a-form-item>
+          </a-form>
+          <div class="qualified-list">
+            <a-tag
+              v-for="team in qualifiedSlots"
+              :key="team.rank"
+              :color="team.settled ? 'processing' : 'default'"
             >
-              <template #icon><PlayCircleOutlined /></template>
-              生成排位
-            </a-button>
-          </a-space>
-          <div v-if="qualifiedTeams.length" class="qualified-list">
-            <a-tag v-for="team in qualifiedTeams" :key="team.id" color="processing">
               {{ team.rank }}. {{ team.name }}
             </a-tag>
           </div>
@@ -185,17 +231,6 @@ function getPlacement(match, side) {
         <div class="playoff-source">
           <h3>手动创建</h3>
           <p>按 1-4 号种子生成。</p>
-          <a-space wrap>
-            <span class="field-label">场地</span>
-            <a-input-number
-              :value="playoffVenueCount"
-              :min="1"
-              :max="12"
-              size="small"
-              class="playoff-number"
-              @update:value="emit('update:playoffVenueCount', $event)"
-            />
-          </a-space>
           <div class="manual-playoff-editor">
             <label v-for="(_, index) in manualPlayoffNames" :key="index" class="team-name-field">
               <span>{{ index + 1 }} 号种子</span>

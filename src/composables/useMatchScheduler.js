@@ -1,12 +1,14 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import {
   createDefaultTeamNames,
+  createDefaultVenueNames,
   createTeams,
   createVenues,
   generatePlannedSchedule,
   generatePlayoffSchedule,
   getTeamIds,
   normalizeTeamNames,
+  normalizeVenueNames,
   pickNextMatch,
 } from '../utils/schedule';
 import { createTeamStats, sortTeamRows, withRanks } from '../utils/ranking';
@@ -17,7 +19,9 @@ export function useMatchScheduler() {
   const leagueTeamCount = ref(5);
   const leagueVenueCount = ref(2);
   const leagueTeamNames = ref(createDefaultTeamNames(leagueTeamCount.value));
+  const leagueVenueNames = ref(createDefaultVenueNames(leagueVenueCount.value));
   const playoffVenueCount = ref(2);
+  const playoffVenueNames = ref(createDefaultVenueNames(playoffVenueCount.value));
   const matches = ref([]);
   const leagueVenues = ref([]);
   const playoffVenues = ref([]);
@@ -346,11 +350,12 @@ export function useMatchScheduler() {
     if (hasLeagueSchedule.value) return;
 
     leagueTeamNames.value = normalizeTeamNames(leagueTeamCount.value, leagueTeamNames.value);
+    leagueVenueNames.value = normalizeVenueNames(leagueVenueCount.value, leagueVenueNames.value);
     matches.value = [
       ...generatePlannedSchedule(leagueTeamNames.value, leagueVenueCount.value),
       ...playoffMatches.value,
     ];
-    leagueVenues.value = createVenues(leagueVenueCount.value);
+    leagueVenues.value = createVenues(leagueVenueCount.value, leagueVenueNames.value);
     recentTeamsByStage.value = { ...recentTeamsByStage.value, league: [] };
     skippedMatchIdsByVenue.value = { ...skippedMatchIdsByVenue.value, league: {} };
     dynamicMatchIdsByVenue.value = { ...dynamicMatchIdsByVenue.value, league: {} };
@@ -368,7 +373,8 @@ export function useMatchScheduler() {
       ...leagueMatches.value,
       ...createPlayoffMatches(qualifiedTeams),
     ];
-    playoffVenues.value = createVenues(playoffVenueCount.value);
+    playoffVenueNames.value = normalizeVenueNames(playoffVenueCount.value, playoffVenueNames.value);
+    playoffVenues.value = createVenues(playoffVenueCount.value, playoffVenueNames.value);
     skippedMatchIdsByVenue.value = {
       ...skippedMatchIdsByVenue.value,
       playoff: {},
@@ -385,7 +391,8 @@ export function useMatchScheduler() {
       ...leagueMatches.value,
       ...createPlayoffMatches(createTeams(names)),
     ];
-    playoffVenues.value = createVenues(playoffVenueCount.value);
+    playoffVenueNames.value = normalizeVenueNames(playoffVenueCount.value, playoffVenueNames.value);
+    playoffVenues.value = createVenues(playoffVenueCount.value, playoffVenueNames.value);
     recentTeamsByStage.value = { ...recentTeamsByStage.value, playoff: [] };
     skippedMatchIdsByVenue.value = { ...skippedMatchIdsByVenue.value, playoff: {} };
     dynamicMatchIdsByVenue.value = { ...dynamicMatchIdsByVenue.value, playoff: {} };
@@ -553,6 +560,7 @@ export function useMatchScheduler() {
     skippedMatchIdsByVenue.value = { ...skippedMatchIdsByVenue.value, league: {} };
     dynamicMatchIdsByVenue.value = { ...dynamicMatchIdsByVenue.value, league: {} };
     leagueTeamNames.value = createDefaultTeamNames(leagueTeamCount.value);
+    leagueVenueNames.value = createDefaultVenueNames(leagueVenueCount.value);
     restoredFromStorage.value = false;
     if (!matches.value.length) localStorage.removeItem(STORAGE_KEY);
   }
@@ -565,6 +573,7 @@ export function useMatchScheduler() {
     dynamicMatchIdsByVenue.value = { ...dynamicMatchIdsByVenue.value, playoff: {} };
     playoffAdvanceCount.value = 4;
     manualPlayoffNames.value = createDefaultTeamNames(4);
+    playoffVenueNames.value = createDefaultVenueNames(playoffVenueCount.value);
     restoredFromStorage.value = false;
     if (!matches.value.length) localStorage.removeItem(STORAGE_KEY);
   }
@@ -578,7 +587,9 @@ export function useMatchScheduler() {
         leagueTeamCount: leagueTeamCount.value,
         leagueVenueCount: leagueVenueCount.value,
         leagueTeamNames: leagueTeamNames.value,
+        leagueVenueNames: leagueVenueNames.value,
         playoffVenueCount: playoffVenueCount.value,
+        playoffVenueNames: playoffVenueNames.value,
         matches: matches.value,
         leagueVenues: leagueVenues.value,
         playoffVenues: playoffVenues.value,
@@ -603,18 +614,24 @@ export function useMatchScheduler() {
       leagueTeamNames.value = Array.isArray(state.leagueTeamNames ?? state.teamNames)
         ? normalizeTeamNames(leagueTeamCount.value, state.leagueTeamNames ?? state.teamNames)
         : createDefaultTeamNames(leagueTeamCount.value);
+      leagueVenueNames.value = Array.isArray(state.leagueVenueNames)
+        ? normalizeVenueNames(leagueVenueCount.value, state.leagueVenueNames)
+        : normalizeVenueNames(leagueVenueCount.value, extractVenueNames(state.leagueVenues ?? state.venues));
+      playoffVenueNames.value = Array.isArray(state.playoffVenueNames)
+        ? normalizeVenueNames(playoffVenueCount.value, state.playoffVenueNames)
+        : normalizeVenueNames(playoffVenueCount.value, extractVenueNames(state.playoffVenues));
       const fallbackVenues = Array.isArray(state.venues) ? state.venues : [];
       matches.value = restoreStoredMatches(state.matches, fallbackVenues);
       leagueVenues.value = normalizeStageVenues(
         Array.isArray(state.leagueVenues)
           ? state.leagueVenues
-          : (hasLeagueSchedule.value ? fallbackVenues : createVenues(leagueVenueCount.value)),
+          : (hasLeagueSchedule.value ? fallbackVenues : createVenues(leagueVenueCount.value, leagueVenueNames.value)),
         'league',
       );
       playoffVenues.value = normalizeStageVenues(
         Array.isArray(state.playoffVenues)
           ? state.playoffVenues
-          : (hasPlayoffSchedule.value && !hasLeagueSchedule.value ? fallbackVenues : createVenues(playoffVenueCount.value)),
+          : (hasPlayoffSchedule.value && !hasLeagueSchedule.value ? fallbackVenues : createVenues(playoffVenueCount.value, playoffVenueNames.value)),
         'playoff',
       );
       recentTeamsByStage.value = state.recentTeamsByStage ?? {
@@ -694,7 +711,10 @@ export function useMatchScheduler() {
     );
     const sourceVenues = Array.isArray(stageVenues) && stageVenues.length
       ? stageVenues
-      : createVenues(stage === 'playoff' ? playoffVenueCount.value : leagueVenueCount.value);
+      : createVenues(
+        stage === 'playoff' ? playoffVenueCount.value : leagueVenueCount.value,
+        stage === 'playoff' ? playoffVenueNames.value : leagueVenueNames.value,
+      );
 
     return sourceVenues.map((venue) => ({
       ...venue,
@@ -702,12 +722,20 @@ export function useMatchScheduler() {
     }));
   }
 
+  function extractVenueNames(value) {
+    return Array.isArray(value)
+      ? value.map((venue) => venue?.name).filter(Boolean)
+      : [];
+  }
+
   watch(
     () => ({
       leagueTeamCount: leagueTeamCount.value,
       leagueVenueCount: leagueVenueCount.value,
       leagueTeamNames: leagueTeamNames.value,
+      leagueVenueNames: leagueVenueNames.value,
       playoffVenueCount: playoffVenueCount.value,
+      playoffVenueNames: playoffVenueNames.value,
       matches: matches.value,
       leagueVenues: leagueVenues.value,
       playoffVenues: playoffVenues.value,
@@ -727,13 +755,27 @@ export function useMatchScheduler() {
     }
   });
 
+  watch(leagueVenueCount, (count) => {
+    if (!hasLeagueSchedule.value) {
+      leagueVenueNames.value = normalizeVenueNames(count, leagueVenueNames.value);
+    }
+  });
+
+  watch(playoffVenueCount, (count) => {
+    if (!hasPlayoffSchedule.value) {
+      playoffVenueNames.value = normalizeVenueNames(count, playoffVenueNames.value);
+    }
+  });
+
   onMounted(restoreState);
 
   return {
     leagueTeamCount,
     leagueVenueCount,
     leagueTeamNames,
+    leagueVenueNames,
     playoffVenueCount,
+    playoffVenueNames,
     manualPlayoffNames,
     matches,
     leagueVenues,

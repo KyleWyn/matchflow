@@ -4,6 +4,10 @@ export function createDefaultTeamNames(count) {
   return Array.from({ length: count }, (_, index) => `队伍 ${index + 1}`);
 }
 
+export function createDefaultVenueNames(count) {
+  return Array.from({ length: count }, (_, index) => `场地 ${index + 1}`);
+}
+
 export function createTeams(names) {
   return names.map((name, index) => ({
     id: `team-${index + 1}`,
@@ -13,6 +17,16 @@ export function createTeams(names) {
 
 export function normalizeTeamNames(count, names = []) {
   return Array.from({ length: count }, (_, index) => names[index] || `队伍 ${index + 1}`);
+}
+
+export function normalizeVenueNames(count, names = []) {
+  return Array.from({ length: count }, (_, index) => names[index] || `场地 ${index + 1}`);
+}
+
+export function formatVenueName(name, index) {
+  const trimmedName = name?.trim();
+  if (!trimmedName) return `场地 ${index + 1}`;
+  return /^\d+$/.test(trimmedName) ? `${trimmedName}号场地` : trimmedName;
 }
 
 export function generateRoundRobin(names) {
@@ -219,10 +233,10 @@ export function generatePlayoffSchedule(teams, venueCount, startOrder = 1, start
   return plannedMatches;
 }
 
-export function createVenues(count) {
+export function createVenues(count, names = []) {
   return Array.from({ length: count }, (_, index) => ({
     id: `venue-${index + 1}`,
-    name: `场地 ${index + 1}`,
+    name: formatVenueName(names[index], index),
     currentMatchId: null,
   }));
 }

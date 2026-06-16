@@ -1,12 +1,14 @@
 <script setup>
 // 赛程配置面板：管理生成前的队伍数、场地数和队伍名称输入。
 import { DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons-vue';
+import PasswordConfirm from './PasswordConfirm.vue';
 import SummaryGrid from './SummaryGrid.vue';
 
 const props = defineProps({
   teamCount: { type: Number, required: true },
   venueCount: { type: Number, required: true },
   teamNames: { type: Array, required: true },
+  venueNames: { type: Array, required: true },
   hasSchedule: { type: Boolean, required: true },
   summary: { type: Array, default: () => [] },
   progressPercent: { type: Number, default: 0 },
@@ -16,6 +18,7 @@ const emit = defineEmits([
   'update:teamCount',
   'update:venueCount',
   'update:teamNames',
+  'update:venueNames',
   'generate',
   'reset',
 ]);
@@ -26,13 +29,19 @@ function updateTeamName(index, value) {
   nextNames[index] = value;
   emit('update:teamNames', nextNames);
 }
+
+function updateVenueName(index, value) {
+  const nextNames = [...props.venueNames];
+  nextNames[index] = value;
+  emit('update:venueNames', nextNames);
+}
 </script>
 
 <template>
   <section class="control-band">
     <a-card class="control-card" :bordered="false">
       <a-form layout="inline" class="config-form">
-        <a-form-item label="队伍">
+        <a-form-item label="队伍数">
           <a-input-number
             :value="teamCount"
             :min="2"
@@ -41,7 +50,7 @@ function updateTeamName(index, value) {
             @update:value="emit('update:teamCount', $event)"
           />
         </a-form-item>
-        <a-form-item label="场地">
+        <a-form-item label="场地数">
           <a-input-number
             :value="venueCount"
             :min="1"
@@ -65,31 +74,54 @@ function updateTeamName(index, value) {
           <SummaryGrid :summary="summary" :progress-percent="progressPercent" />
         </a-form-item>
         <a-form-item>
-          <a-popconfirm
-            title="确定清空积分赛程吗？"
-            ok-text="清空"
-            cancel-text="取消"
+          <PasswordConfirm
+            title="清空积分赛程"
+            description="此操作会清空积分赛程和已录入进度。"
+            ok-text="清空赛程"
             @confirm="emit('reset')"
           >
             <a-button danger class="tool-action-button">
               <template #icon><DeleteOutlined /></template>
               清空赛程
             </a-button>
-          </a-popconfirm>
+          </PasswordConfirm>
         </a-form-item>
       </a-form>
 
       <template v-if="!hasSchedule">
         <a-divider />
-        <div class="team-editor">
-          <label v-for="(_, index) in teamNames" :key="index" class="team-name-field">
-            <span>队伍 {{ index + 1 }}</span>
-            <a-input
-              :value="teamNames[index]"
-              :placeholder="`队伍 ${index + 1}`"
-              @update:value="updateTeamName(index, $event)"
-            />
-          </label>
+        <div class="setup-editor-grid">
+          <div class="setup-editor-block team-editor-block">
+            <div class="setup-editor-head">
+              <h3 class="setup-editor-title">队伍名称</h3>
+            </div>
+            <div class="team-editor">
+              <label v-for="(_, index) in teamNames" :key="index" class="team-name-field">
+                <span>队伍 {{ index + 1 }}</span>
+                <a-input
+                  :value="teamNames[index]"
+                  :placeholder="`队伍 ${index + 1}`"
+                  @update:value="updateTeamName(index, $event)"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="setup-editor-block venue-editor-block">
+            <div class="setup-editor-head">
+              <h3 class="setup-editor-title">场地编号</h3>
+              <span>填数字会显示为“6号场地”</span>
+            </div>
+            <div class="venue-name-editor">
+              <label v-for="(_, index) in venueNames" :key="index" class="team-name-field">
+                <span>场地 {{ index + 1 }}</span>
+                <a-input
+                  :value="venueNames[index]"
+                  placeholder="如：6 或 A馆"
+                  @update:value="updateVenueName(index, $event)"
+                />
+              </label>
+            </div>
+          </div>
         </div>
       </template>
     </a-card>

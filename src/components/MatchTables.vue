@@ -1,6 +1,6 @@
 <script setup>
 // 总赛程表：支持计划表和现场表两种视图。
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { DownloadOutlined } from '@ant-design/icons-vue';
 import { getPairing } from '../utils/format';
 
@@ -8,9 +8,16 @@ const props = defineProps({
   title: { type: String, default: '总赛程表' },
   matches: { type: Array, required: true },
   venues: { type: Array, required: true },
+  tableView: { type: String, default: 'plan' },
 });
 
-const tableView = ref('plan');
+const emit = defineEmits(['update:tableView']);
+
+const tableViewModel = computed({
+  get: () => props.tableView,
+  set: (value) => emit('update:tableView', value),
+});
+
 const tableViewOptions = [
   { label: '计划表', value: 'plan' },
   { label: '现场表', value: 'actual' },
@@ -112,7 +119,7 @@ const actualScheduleRows = computed(() => {
 });
 
 const visibleScheduleRows = computed(() =>
-  tableView.value === 'actual' ? actualScheduleRows.value : scheduleRows.value,
+  props.tableView === 'actual' ? actualScheduleRows.value : scheduleRows.value,
 );
 
 const actualVenueTimeline = computed(() =>
@@ -196,7 +203,7 @@ function getOrderShiftText(match) {
 }
 
 function getCellStyle(match) {
-  if (tableView.value !== 'plan' || !match || !isVenueChanged(match)) return {};
+  if (props.tableView !== 'plan' || !match || !isVenueChanged(match)) return {};
 
   const color = venueColorMap.value[match.actualVenueId];
   if (!color) return {};
@@ -240,7 +247,7 @@ function getCurrentMatrixRows() {
       }
 
       const notes = [];
-      if (tableView.value === 'plan') {
+      if (props.tableView === 'plan') {
         if (isVenueChanged(match)) notes.push(`调至 ${getVenueName(match.actualVenueId)}`);
         const orderShift = getOrderShiftText(match);
         if (orderShift) notes.push(orderShift);
@@ -302,7 +309,7 @@ function exportPlan() {
 function exportCurrent() {
   exportRows(
     getCurrentMatrixRows(),
-    tableView.value === 'actual' ? '现场赛程表' : '当前总赛程表',
+    props.tableView === 'actual' ? '现场赛程表' : '当前总赛程表',
   );
 }
 </script>
@@ -314,7 +321,7 @@ function exportCurrent() {
       <template #extra>
         <div class="table-tools">
           <a-segmented
-            v-model:value="tableView"
+            v-model:value="tableViewModel"
             :options="tableViewOptions"
             size="small"
           />
@@ -372,13 +379,13 @@ function exportCurrent() {
                   {{ getStatusText(record.matchesByVenue[column.key]) }}
                 </a-tag>
                 <a-tag
-                  v-if="tableView === 'plan' && isVenueChanged(record.matchesByVenue[column.key])"
+                  v-if="tableViewModel === 'plan' && isVenueChanged(record.matchesByVenue[column.key])"
                   :style="getVenueTagStyle(record.matchesByVenue[column.key])"
                 >
                   调至 {{ getVenueName(record.matchesByVenue[column.key].actualVenueId) }}
                 </a-tag>
                 <a-tag
-                  v-if="tableView === 'plan' && getOrderShiftText(record.matchesByVenue[column.key])"
+                  v-if="tableViewModel === 'plan' && getOrderShiftText(record.matchesByVenue[column.key])"
                   color="purple"
                 >
                   {{ getOrderShiftText(record.matchesByVenue[column.key]) }}

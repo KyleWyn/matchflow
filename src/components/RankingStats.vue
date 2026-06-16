@@ -1,5 +1,6 @@
 <script setup>
 // 排名对战表：在组件内部维护排序规则，并展示排名、胜场、净胜分和对战结果。
+import { computed } from 'vue';
 import { DownloadOutlined, TrophyOutlined } from '@ant-design/icons-vue';
 import { rankingSortOptions } from '../constants/tables';
 import { useRankingStats } from '../composables/useRankingStats';
@@ -8,24 +9,37 @@ const props = defineProps({
   teamNames: { type: Array, required: true },
   matches: { type: Array, required: true },
   completedMatches: { type: Array, required: true },
+  rankingSort: { type: String, default: 'original' },
 });
 
-const emit = defineEmits(['edit-score']);
+const emit = defineEmits(['edit-score', 'update:rankingSort']);
+
+const rankingSortModel = computed({
+  get: () => props.rankingSort,
+  set: (value) => emit('update:rankingSort', value),
+});
+const teamNamesSource = computed(() => props.teamNames);
+const matchesSource = computed(() => props.matches);
+const completedMatchesSource = computed(() => props.completedMatches);
 
 const {
-  rankingSort,
   matrixColumns,
   matrixRows,
   getRankClass,
   getMatrixCell,
-} = useRankingStats(props);
+} = useRankingStats({
+  teamNames: teamNamesSource,
+  matches: matchesSource,
+  completedMatches: completedMatchesSource,
+  rankingSort: rankingSortModel,
+});
 
 function shouldShowRankDecorations(rank) {
-  return rankingSort.value !== 'original' && [1, 2, 3].includes(rank);
+  return rankingSortModel.value !== 'original' && [1, 2, 3].includes(rank);
 }
 
 function getDisplayRankClass(record) {
-  return rankingSort.value === 'original' ? '' : getRankClass(record);
+  return rankingSortModel.value === 'original' ? '' : getRankClass(record);
 }
 
 function getCellText(record, column) {
@@ -135,7 +149,7 @@ function exportExcel() {
             导出 Excel
           </a-button>
           <a-select
-            v-model:value="rankingSort"
+            v-model:value="rankingSortModel"
             :options="rankingSortOptions"
             size="small"
             class="matrix-sort"

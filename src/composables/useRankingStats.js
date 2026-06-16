@@ -1,4 +1,4 @@
-import { computed, ref, unref } from "vue";
+import { computed, unref } from "vue";
 import {
   createTeamStats,
   getMatrixCell as getMatrixCellData,
@@ -7,7 +7,7 @@ import {
 } from "../utils/ranking";
 
 export function useRankingStats(source) {
-  const rankingSort = ref("original");
+  const rankingSort = computed(() => unref(source.rankingSort) ?? "original");
 
   const teamNames = computed(() => unref(source.teamNames));
   const matches = computed(() => unref(source.matches));

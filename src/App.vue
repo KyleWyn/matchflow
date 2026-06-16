@@ -1,6 +1,6 @@
 <script setup>
 // 应用组装层：只负责组织页面模块，并把核心调度状态传给各功能组件。
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import ConfigPanel from './components/ConfigPanel.vue';
 import MatchTables from './components/MatchTables.vue';
@@ -10,11 +10,30 @@ import ScoreModal from './components/ScoreModal.vue';
 import VenueGrid from './components/VenueGrid.vue';
 import { useMatchScheduler } from './composables/useMatchScheduler';
 
+const UI_PREFERENCES_KEY = 'matchflow-ui-preferences-v1';
+const tableViewValues = ['plan', 'actual'];
+const rankingSortValues = ['original', 'diff', 'wins', 'wins-diff', 'wins-diff-head-to-head'];
+
+function getStoredUiPreferences() {
+  try {
+    return JSON.parse(localStorage.getItem(UI_PREFERENCES_KEY) ?? '{}');
+  } catch (error) {
+    console.warn('读取界面偏好失败', error);
+    return {};
+  }
+}
+
+function normalizePreference(value, allowedValues, fallback) {
+  return allowedValues.includes(value) ? value : fallback;
+}
+
 const {
   leagueTeamCount,
   leagueVenueCount,
   leagueTeamNames,
+  leagueVenueNames,
   playoffVenueCount,
+  playoffVenueNames,
   manualPlayoffNames,
   leagueVenues,
   playoffVenues,
@@ -55,7 +74,28 @@ const {
   resetPlayoffProgress,
 } = useMatchScheduler();
 
-const activeTab = ref('league');
+const storedUiPreferences = getStoredUiPreferences();
+const activeTab = ref(normalizePreference(storedUiPreferences.activeTab, ['league', 'playoff'], 'league'));
+const leagueTableView = ref(normalizePreference(storedUiPreferences.leagueTableView, tableViewValues, 'plan'));
+const playoffTableView = ref(normalizePreference(storedUiPreferences.playoffTableView, tableViewValues, 'plan'));
+const rankingSort = ref(normalizePreference(storedUiPreferences.rankingSort, rankingSortValues, 'original'));
+
+watch(
+  () => ({
+    activeTab: activeTab.value,
+    leagueTableView: leagueTableView.value,
+    playoffTableView: playoffTableView.value,
+    rankingSort: rankingSort.value,
+  }),
+  (preferences) => {
+    try {
+      localStorage.setItem(UI_PREFERENCES_KEY, JSON.stringify(preferences));
+    } catch (error) {
+      console.warn('保存界面偏好失败', error);
+    }
+  },
+  { deep: true },
+);
 
 function handleGenerateSchedule() {
   generateSchedule();
@@ -100,6 +140,7 @@ function handleGenerateManualPlayoff() {
               v-model:team-count="leagueTeamCount"
               v-model:venue-count="leagueVenueCount"
               v-model:team-names="leagueTeamNames"
+              v-model:venue-names="leagueVenueNames"
               :has-schedule="hasLeagueSchedule"
               :summary="leagueSummary"
               :progress-percent="leagueProgressPercent"
@@ -122,12 +163,14 @@ function handleGenerateManualPlayoff() {
               />
 
               <MatchTables
+                v-model:table-view="leagueTableView"
                 title="单循环总赛程表"
                 :matches="leagueMatches"
                 :venues="leagueVenues"
               />
 
               <RankingStats
+                v-model:ranking-sort="rankingSort"
                 :team-names="leagueTeamNames"
                 :matches="leagueMatches"
                 :completed-matches="completedLeagueMatches"
@@ -141,6 +184,7 @@ function handleGenerateManualPlayoff() {
           <a-tab-pane key="playoff" tab="排位赛">
             <PlayoffPanel
               v-model:playoff-venue-count="playoffVenueCount"
+              v-model:playoff-venue-names="playoffVenueNames"
               v-model:playoff-advance-count="playoffAdvanceCount"
               v-model:manual-playoff-names="manualPlayoffNames"
               :has-league-schedule="hasLeagueSchedule"
@@ -171,6 +215,7 @@ function handleGenerateManualPlayoff() {
               />
 
               <MatchTables
+                v-model:table-view="playoffTableView"
                 title="排位赛赛程表"
                 :matches="playoffMatches"
                 :venues="playoffVenues"
