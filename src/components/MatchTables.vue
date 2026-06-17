@@ -1,8 +1,8 @@
 <script setup>
 // 总赛程表：支持计划表和现场表两种视图。
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { DownloadOutlined } from '@ant-design/icons-vue';
-import { getPairing } from '../utils/format';
+import { formatTime, getPairing } from '../utils/format';
 
 const props = defineProps({
   title: { type: String, default: '总赛程表' },
@@ -22,6 +22,7 @@ const tableViewOptions = [
   { label: '计划表', value: 'plan' },
   { label: '现场表', value: 'actual' },
 ];
+const selectedMatch = ref(null);
 
 const venuePalette = [
   { bg: '#e6f4ff', border: '#1677ff', text: '#0958d9' },
@@ -135,6 +136,7 @@ const actualVenueTimeline = computed(() =>
     timeline[venue.id] = venueMatches.reduce((result, match, index) => {
       const previousMatch = venueMatches[index - 1] ?? null;
       result[match.id] = {
+        actualIndex: index + 1,
         previousPlannedRound: previousMatch?.plannedRound ?? null,
       };
       return result;
@@ -178,11 +180,16 @@ function getStatusText(match) {
   return '未开始';
 }
 
+function getScoreText(match) {
+  if (!Number.isFinite(match?.scoreA) || !Number.isFinite(match?.scoreB)) return '-';
+  return `${match.scoreA}:${match.scoreB}`;
+}
+
 function isVenueChanged(match) {
   return Boolean(match.actualVenueId && match.actualVenueId !== match.plannedVenueId);
 }
 
-function getOrderShiftText(match) {
+function getActualOrderIndex(match) {
   const plannedRound =
     match.plannedRound ??
     Math.ceil((match.plannedOrder ?? match.order) / Math.max(1, props.venues.length));
@@ -195,11 +202,49 @@ function getOrderShiftText(match) {
     !isVenueChanged(match) && previousRound === plannedRound - 1;
   if (isSameVenueAdjacent) return '';
 
-  if (!previousRound) return '';
+  if (!timeline.actualIndex) return '';
 
-  if (match.status === 'completed') return `轮次 ${previousRound} 后完成`;
-  if (match.status === 'playing') return `轮次 ${previousRound} 后开始`;
-  return `轮次 ${previousRound} 后安排`;
+  return timeline.actualIndex;
+}
+
+function getActualOrderText(match) {
+  const actualIndex = getActualOrderIndex(match);
+  return actualIndex ? `现场第 ${actualIndex} 场` : '';
+}
+
+function getActualTimelineIndex(match) {
+  const actualVenueId = match?.actualVenueId;
+  return actualVenueId ? actualVenueTimeline.value[actualVenueId]?.[match.id]?.actualIndex : null;
+}
+
+function getDetailActualOrderText(match) {
+  const actualIndex = getActualTimelineIndex(match);
+  return actualIndex ? `第 ${actualIndex} 场` : '-';
+}
+
+function formatDuration(startedAt, endedAt, status) {
+  if (status === 'playing' && startedAt && !endedAt) return '进行中';
+  if (!startedAt || !endedAt) return '-';
+
+  const durationMs = new Date(endedAt).getTime() - new Date(startedAt).getTime();
+  if (!Number.isFinite(durationMs) || durationMs < 0) return '-';
+
+  const totalSeconds = Math.floor(durationMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) return `${hours}小时${minutes}分${seconds}秒`;
+  if (minutes > 0) return `${minutes}分${seconds}秒`;
+  return `${seconds}秒`;
+}
+
+function openMatchDetail(match) {
+  selectedMatch.value = match;
+}
+
+function closeMatchDetail() {
+  selectedMatch.value = null;
 }
 
 function getCellStyle(match) {
@@ -222,6 +267,17 @@ function getVenueTagStyle(match) {
     color: color.text,
     borderColor: color.border,
     background: 'rgba(255, 255, 255, 0.72)',
+  };
+}
+
+function getActualOrderBadgeStyle(match) {
+  const color = venueColorMap.value[match.actualVenueId];
+  if (!color) return {};
+
+  return {
+    color: color.text,
+    borderColor: color.border,
+    background: color.bg,
   };
 }
 
@@ -248,9 +304,9 @@ function getCurrentMatrixRows() {
 
       const notes = [];
       if (props.tableView === 'plan') {
-        if (isVenueChanged(match)) notes.push(`调至 ${getVenueName(match.actualVenueId)}`);
-        const orderShift = getOrderShiftText(match);
-        if (orderShift) notes.push(orderShift);
+        if (isVenueChanged(match)) notes.push(getVenueName(match.actualVenueId));
+        const actualOrder = getActualOrderText(match);
+        if (actualOrder) notes.push(actualOrder);
       }
       exportRow[venue.name] = [getPairing(match), getStatusText(match), ...notes].join(' / ');
     });
@@ -368,7 +424,12 @@ function exportCurrent() {
             <div
               v-if="record.matchesByVenue[column.key]"
               class="schedule-cell"
+              role="button"
+              tabindex="0"
               :style="getCellStyle(record.matchesByVenue[column.key])"
+              @click="openMatchDetail(record.matchesByVenue[column.key])"
+              @keydown.enter.prevent="openMatchDetail(record.matchesByVenue[column.key])"
+              @keydown.space.prevent="openMatchDetail(record.matchesByVenue[column.key])"
             >
               <strong>{{ getPairing(record.matchesByVenue[column.key]) }}</strong>
               <div class="schedule-cell-meta">
@@ -382,20 +443,74 @@ function exportCurrent() {
                   v-if="tableViewModel === 'plan' && isVenueChanged(record.matchesByVenue[column.key])"
                   :style="getVenueTagStyle(record.matchesByVenue[column.key])"
                 >
-                  调至 {{ getVenueName(record.matchesByVenue[column.key].actualVenueId) }}
+                  {{ getVenueName(record.matchesByVenue[column.key].actualVenueId) }}
                 </a-tag>
-                <a-tag
-                  v-if="tableViewModel === 'plan' && getOrderShiftText(record.matchesByVenue[column.key])"
-                  color="purple"
+                <span
+                  v-if="tableViewModel === 'plan' && getActualOrderIndex(record.matchesByVenue[column.key])"
+                  class="actual-order-badge"
+                  :style="getActualOrderBadgeStyle(record.matchesByVenue[column.key])"
+                  title="现场顺序"
                 >
-                  {{ getOrderShiftText(record.matchesByVenue[column.key]) }}
-                </a-tag>
+                  {{ getActualOrderIndex(record.matchesByVenue[column.key]) }}
+                </span>
               </div>
             </div>
             <span v-else class="schedule-empty">-</span>
           </template>
         </template>
       </a-table>
+
+      <a-modal
+        :open="Boolean(selectedMatch)"
+        title="比赛详情"
+        :footer="null"
+        @update:open="($event) => { if (!$event) closeMatchDetail(); }"
+      >
+        <div v-if="selectedMatch" class="match-detail-modal">
+          <div class="match-detail-title">
+            <strong>{{ getPairing(selectedMatch) }}</strong>
+            <a-tag :color="getStatusColor(selectedMatch.status)">
+              {{ getStatusText(selectedMatch) }}
+            </a-tag>
+            <a-tag v-if="selectedMatch.stage === 'playoff'" color="purple">
+              {{ selectedMatch.bracketLabel }}
+            </a-tag>
+          </div>
+
+          <div class="match-detail-grid">
+            <div class="match-detail-item">
+              <span>计划场地</span>
+              <strong>{{ getVenueName(selectedMatch.plannedVenueId) }}</strong>
+            </div>
+            <div class="match-detail-item">
+              <span>实际场地</span>
+              <strong>{{ getVenueName(selectedMatch.actualVenueId) }}</strong>
+            </div>
+            <div class="match-detail-item">
+              <span>现场顺序</span>
+              <strong>{{ getDetailActualOrderText(selectedMatch) }}</strong>
+            </div>
+            <div class="match-detail-item">
+              <span>比分</span>
+              <strong>{{ getScoreText(selectedMatch) }}</strong>
+            </div>
+            <div class="match-detail-item">
+              <span>开始时间</span>
+              <strong>{{ formatTime(selectedMatch.startedAt) }}</strong>
+            </div>
+            <div class="match-detail-item">
+              <span>结束时间</span>
+              <strong>{{ formatTime(selectedMatch.endedAt) }}</strong>
+            </div>
+            <div class="match-detail-item match-detail-item-wide">
+              <span>持续时间</span>
+              <strong>
+                {{ formatDuration(selectedMatch.startedAt, selectedMatch.endedAt, selectedMatch.status) }}
+              </strong>
+            </div>
+          </div>
+        </div>
+      </a-modal>
     </a-card>
   </section>
 </template>

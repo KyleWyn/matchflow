@@ -1,9 +1,12 @@
 <script setup>
 // 应用组装层：只负责组织页面模块，并把核心调度状态传给各功能组件。
 import { ref, watch } from 'vue';
+import { message } from 'ant-design-vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import ConfigPanel from './components/ConfigPanel.vue';
+import DataPorter from './components/DataPorter.vue';
 import MatchTables from './components/MatchTables.vue';
+import PasswordConfirm from './components/PasswordConfirm.vue';
 import PlayoffPanel from './components/PlayoffPanel.vue';
 import RankingStats from './components/RankingStats.vue';
 import ScoreModal from './components/ScoreModal.vue';
@@ -79,6 +82,8 @@ const activeTab = ref(normalizePreference(storedUiPreferences.activeTab, ['leagu
 const leagueTableView = ref(normalizePreference(storedUiPreferences.leagueTableView, tableViewValues, 'plan'));
 const playoffTableView = ref(normalizePreference(storedUiPreferences.playoffTableView, tableViewValues, 'plan'));
 const rankingSort = ref(normalizePreference(storedUiPreferences.rankingSort, rankingSortValues, 'original'));
+const scoreEditConfirmRef = ref(null);
+const pendingScoreEditMatch = ref(null);
 
 watch(
   () => ({
@@ -111,6 +116,37 @@ function handleGenerateManualPlayoff() {
   generateManualPlayoff();
   activeTab.value = 'playoff';
 }
+
+function handleSkipRecommendedMatch(venue, stage) {
+  const skipped = skipRecommendedMatch(venue, stage);
+  if (!skipped) {
+    message.info('暂无其他可跳过的候选比赛');
+  }
+}
+
+function handleDynamicAllocateVenue(venue, stage) {
+  const allocated = dynamicallyAllocateVenue(venue, stage);
+  if (!allocated) {
+    message.info('暂无可调配的补位比赛');
+  }
+}
+
+function handleOpenMatchScoreModal(match) {
+  if (match?.status !== 'completed') {
+    openMatchScoreModal(match);
+    return;
+  }
+
+  pendingScoreEditMatch.value = match;
+  scoreEditConfirmRef.value?.openModal();
+}
+
+function confirmCompletedScoreEdit() {
+  if (!pendingScoreEditMatch.value) return;
+
+  openMatchScoreModal(pendingScoreEditMatch.value);
+  pendingScoreEditMatch.value = null;
+}
 </script>
 
 <template>
@@ -121,6 +157,7 @@ function handleGenerateManualPlayoff() {
           <div class="eyebrow">MatchFlow</div>
           <h1>赛程调度台</h1>
         </div>
+        <DataPorter />
       </a-layout-header>
 
       <a-layout-content class="app-content">
@@ -158,8 +195,8 @@ function handleGenerateManualPlayoff() {
                 @open-score="openScoreModal"
                 @arrange-recommended="arrangeRecommendedMatch"
                 @undo-match="undoVenueMatch"
-                @skip-recommended="skipRecommendedMatch"
-                @use-dynamic="dynamicallyAllocateVenue"
+                @skip-recommended="handleSkipRecommendedMatch"
+                @use-dynamic="handleDynamicAllocateVenue"
               />
 
               <MatchTables
@@ -174,7 +211,7 @@ function handleGenerateManualPlayoff() {
                 :team-names="leagueTeamNames"
                 :matches="leagueMatches"
                 :completed-matches="completedLeagueMatches"
-                @edit-score="openMatchScoreModal"
+                @edit-score="handleOpenMatchScoreModal"
               />
             </template>
 
@@ -198,6 +235,7 @@ function handleGenerateManualPlayoff() {
               @generate-from-ranking="handleGeneratePlayoffFromRanking"
               @generate-manual="handleGenerateManualPlayoff"
               @reset="resetPlayoffProgress"
+              @edit-score="handleOpenMatchScoreModal"
             />
 
             <template v-if="hasPlayoffSchedule">
@@ -210,8 +248,8 @@ function handleGenerateManualPlayoff() {
                 @open-score="openScoreModal"
                 @arrange-recommended="arrangeRecommendedMatch"
                 @undo-match="undoVenueMatch"
-                @skip-recommended="skipRecommendedMatch"
-                @use-dynamic="dynamicallyAllocateVenue"
+                @skip-recommended="handleSkipRecommendedMatch"
+                @use-dynamic="handleDynamicAllocateVenue"
               />
 
               <MatchTables
@@ -233,6 +271,16 @@ function handleGenerateManualPlayoff() {
         @update:open="($event) => { if (!$event) closeScoreModal(); }"
         @confirm="finishMatchWithScore"
       />
+
+      <PasswordConfirm
+        ref="scoreEditConfirmRef"
+        title="修改已完成比分"
+        description="该操作会覆盖已录入成绩，请输入确认密码。"
+        ok-text="确认修改"
+        @confirm="confirmCompletedScoreEdit"
+      >
+        <span />
+      </PasswordConfirm>
     </a-layout>
   </a-config-provider>
 </template>

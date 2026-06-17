@@ -261,7 +261,11 @@ export function useMatchScheduler() {
 
   function skipRecommendedMatch(venue, stage = 'league') {
     const match = getRecommendationStore(stage).value[venue.id];
-    if (!match || venue.currentMatchId) return;
+    if (!match || venue.currentMatchId) return false;
+
+    const stageMatches = stage === 'playoff' ? playoffMatches.value : leagueMatches.value;
+    const plannedCandidates = getPlannedVenueCandidates(stageMatches, venue.id);
+    if (plannedCandidates.length <= 1) return false;
 
     const skippedMatchIds = skippedMatchIdsByVenue.value[stage]?.[venue.id] ?? [];
     const nextSkippedMatchIds = [...new Set([...skippedMatchIds, match.id])];
@@ -270,6 +274,11 @@ export function useMatchScheduler() {
       venue.id,
       nextSkippedMatchIds,
     );
+    const nextRecommendation = shouldCycleSkippedMatches
+      ? plannedCandidates[0]
+      : plannedCandidates.find((item) => !nextSkippedMatchIds.includes(item.id));
+    if (nextRecommendation?.id === match.id) return false;
+
     const nextStageSkipped = { ...(skippedMatchIdsByVenue.value[stage] ?? {}) };
 
     if (shouldCycleSkippedMatches) {
@@ -283,6 +292,7 @@ export function useMatchScheduler() {
       [stage]: nextStageSkipped,
     };
     clearDynamicMatch(venue.id, stage);
+    return true;
   }
 
   function isAllPlannedCandidatesSkipped(stage, venueId, skippedMatchIds) {
@@ -307,10 +317,11 @@ export function useMatchScheduler() {
   }
 
   function dynamicallyAllocateVenue(venue, stage = 'league') {
-    if (venue.currentMatchId) return;
+    if (venue.currentMatchId) return false;
 
     const stageMatches = stage === 'playoff' ? playoffMatches.value : leagueMatches.value;
     const stageVenues = getVenueStore(stage).value;
+    const currentRecommendation = getRecommendationStore(stage).value[venue.id] ?? null;
     const skippedMatchIds = skippedMatchIdsByVenue.value[stage]?.[venue.id] ?? [];
     const virtualVenues = stageVenues.map((item) => ({ ...item }));
     const virtualVenue = virtualVenues.find((item) => item.id === venue.id);
@@ -324,7 +335,7 @@ export function useMatchScheduler() {
       recentTeamsByStage.value[stage] ?? [],
       skippedMatchIds,
     );
-    if (!nextMatch) return;
+    if (!nextMatch || nextMatch.id === currentRecommendation?.id) return false;
 
     dynamicMatchIdsByVenue.value = {
       ...dynamicMatchIdsByVenue.value,
@@ -333,6 +344,7 @@ export function useMatchScheduler() {
         [venue.id]: nextMatch.id,
       },
     };
+    return true;
   }
 
   function clearDynamicMatch(venueId, stage = 'league') {
@@ -457,7 +469,7 @@ export function useMatchScheduler() {
       };
     }
     if (venue) venue.currentMatchId = null;
-    if (!wasCompleted) advancePlayoffBracket(match);
+    if (match.stage === 'playoff') advancePlayoffBracket(match);
     scoreModalOpen.value = false;
     resetScoringState();
   }
@@ -484,10 +496,35 @@ export function useMatchScheduler() {
     const loser = getMatchLoser(match);
     const targetSide = match.playoffRole === 'semifinal-1' ? 'teamA' : 'teamB';
 
-    finalMatch[targetSide] = winner;
-    thirdPlaceMatch[targetSide] = loser;
+    updateDependentPlayoffTeam(finalMatch, targetSide, winner);
+    updateDependentPlayoffTeam(thirdPlaceMatch, targetSide, loser);
     unlockReadyPlayoffMatch(finalMatch);
     unlockReadyPlayoffMatch(thirdPlaceMatch);
+  }
+
+  function updateDependentPlayoffTeam(match, side, team) {
+    const currentTeam = match[side];
+    if (currentTeam?.id === team.id) return;
+
+    match[side] = team;
+    if (!match.teamA?.placeholder && !match.teamB?.placeholder) {
+      resetDependentPlayoffMatch(match);
+    }
+  }
+
+  function resetDependentPlayoffMatch(match) {
+    const stageVenues = getVenueStore('playoff').value;
+    const venue = stageVenues.find((item) => item.currentMatchId === match.id);
+    if (venue) venue.currentMatchId = null;
+
+    match.status = 'pending';
+    match.scoreA = null;
+    match.scoreB = null;
+    match.startedAt = null;
+    match.endedAt = null;
+    match.venueId = null;
+    match.actualVenueId = null;
+    match.actualOrder = null;
   }
 
   function rollbackPlayoffBracket(match) {

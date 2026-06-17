@@ -34,6 +34,13 @@ export function useRankingStats(source) {
       width: 90,
     },
     {
+      title: "队伍",
+      dataIndex: "name",
+      key: "name",
+      fixed: "left",
+      width: 140,
+    },
+    {
       title: "胜场",
       dataIndex: "wins",
       key: "wins",
@@ -44,13 +51,6 @@ export function useRankingStats(source) {
       dataIndex: "diff",
       key: "diff",
       width: 90,
-    },
-    {
-      title: "队伍",
-      dataIndex: "name",
-      key: "name",
-      fixed: "left",
-      width: 140,
     },
 
     ...matrixTeams.value.map((team) => ({

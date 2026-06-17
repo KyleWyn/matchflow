@@ -31,6 +31,8 @@ function confirm() {
   emit('confirm');
   closeModal();
 }
+
+defineExpose({ openModal });
 </script>
 
 <template>

@@ -35,6 +35,7 @@ const emit = defineEmits([
   'generate-from-ranking',
   'generate-manual',
   'reset',
+  'edit-score',
 ]);
 
 const canGenerateFromRanking = computed(
@@ -88,6 +89,33 @@ function getStatusText(status) {
   if (status === 'playing') return '进行中';
   if (status === 'locked') return '待定';
   return '未开始';
+}
+
+function canEditMatchScore(match) {
+  if (!['pending', 'playing', 'completed'].includes(match?.status)) return false;
+  return !hasCompletedDependentMatch(match);
+}
+
+function hasCompletedDependentMatch(match) {
+  if (!match?.playoffRole?.startsWith('semifinal')) return false;
+
+  const targetSide = match.playoffRole === 'semifinal-1' ? 'teamA' : 'teamB';
+  return [finalMatch.value, thirdPlaceMatch.value].some(
+    (item) =>
+      item?.status === 'completed' &&
+      !item[targetSide]?.placeholder,
+  );
+}
+
+function getScoreEditTitle(match) {
+  if (canEditMatchScore(match)) return '点击编辑比分';
+  if (hasCompletedDependentMatch(match)) return '后续比赛已有成绩，不能修改';
+  return '';
+}
+
+function editMatchScore(match) {
+  if (!canEditMatchScore(match)) return;
+  emit('edit-score', match);
 }
 
 function getTeamScore(match, side) {
@@ -252,7 +280,17 @@ function getPlacement(match, side) {
         <div class="playoff-bracket">
           <div class="playoff-round">
             <span class="playoff-round-title">半决赛</span>
-            <div v-for="match in semifinalMatches" :key="match.id" class="playoff-match-card">
+            <div
+              v-for="match in semifinalMatches"
+              :key="match.id"
+              :class="['playoff-match-card', { 'is-score-editable': canEditMatchScore(match) }]"
+              :role="canEditMatchScore(match) ? 'button' : undefined"
+              :tabindex="canEditMatchScore(match) ? 0 : undefined"
+              :title="getScoreEditTitle(match)"
+              @click="editMatchScore(match)"
+              @keydown.enter.prevent="editMatchScore(match)"
+              @keydown.space.prevent="editMatchScore(match)"
+            >
               <div class="playoff-match-head">
                 <span>{{ match.bracketLabel }}</span>
                 <a-tag :color="getStatusColor(match.status)">
@@ -280,7 +318,20 @@ function getPlacement(match, side) {
 
           <div class="playoff-round playoff-round-finals">
             <span class="playoff-round-title">排名战</span>
-            <div v-if="finalMatch" class="playoff-match-card playoff-final-card">
+            <div
+              v-if="finalMatch"
+              :class="[
+                'playoff-match-card',
+                'playoff-final-card',
+                { 'is-score-editable': canEditMatchScore(finalMatch) },
+              ]"
+              :role="canEditMatchScore(finalMatch) ? 'button' : undefined"
+              :tabindex="canEditMatchScore(finalMatch) ? 0 : undefined"
+              :title="getScoreEditTitle(finalMatch)"
+              @click="editMatchScore(finalMatch)"
+              @keydown.enter.prevent="editMatchScore(finalMatch)"
+              @keydown.space.prevent="editMatchScore(finalMatch)"
+            >
               <div class="playoff-match-head">
                 <span>{{ finalMatch.bracketLabel }}</span>
                 <a-tag :color="getStatusColor(finalMatch.status)">
@@ -314,7 +365,16 @@ function getPlacement(match, side) {
                 </div>
               </div>
             </div>
-            <div v-if="thirdPlaceMatch" class="playoff-match-card">
+            <div
+              v-if="thirdPlaceMatch"
+              :class="['playoff-match-card', { 'is-score-editable': canEditMatchScore(thirdPlaceMatch) }]"
+              :role="canEditMatchScore(thirdPlaceMatch) ? 'button' : undefined"
+              :tabindex="canEditMatchScore(thirdPlaceMatch) ? 0 : undefined"
+              :title="getScoreEditTitle(thirdPlaceMatch)"
+              @click="editMatchScore(thirdPlaceMatch)"
+              @keydown.enter.prevent="editMatchScore(thirdPlaceMatch)"
+              @keydown.space.prevent="editMatchScore(thirdPlaceMatch)"
+            >
               <div class="playoff-match-head">
                 <span>{{ thirdPlaceMatch.bracketLabel }}</span>
                 <a-tag :color="getStatusColor(thirdPlaceMatch.status)">
