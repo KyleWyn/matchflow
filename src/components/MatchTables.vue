@@ -134,11 +134,7 @@ const actualVenueTimeline = computed(() =>
       .sort((left, right) => left.actualOrder - right.actualOrder);
 
     timeline[venue.id] = venueMatches.reduce((result, match, index) => {
-      const previousMatch = venueMatches[index - 1] ?? null;
-      result[match.id] = {
-        actualIndex: index + 1,
-        previousPlannedRound: previousMatch?.plannedRound ?? null,
-      };
+      result[match.id] = { actualIndex: index + 1 };
       return result;
     }, {});
 
@@ -190,17 +186,9 @@ function isVenueChanged(match) {
 }
 
 function getActualOrderIndex(match) {
-  const plannedRound =
-    match.plannedRound ??
-    Math.ceil((match.plannedOrder ?? match.order) / Math.max(1, props.venues.length));
   const actualVenueId = match.actualVenueId;
   const timeline = actualVenueTimeline.value[actualVenueId]?.[match.id];
   if (!actualVenueId || !timeline) return '';
-
-  const previousRound = timeline.previousPlannedRound;
-  const isSameVenueAdjacent =
-    !isVenueChanged(match) && previousRound === plannedRound - 1;
-  if (isSameVenueAdjacent) return '';
 
   if (!timeline.actualIndex) return '';
 
