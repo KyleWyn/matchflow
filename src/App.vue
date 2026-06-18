@@ -1,6 +1,6 @@
 <script setup>
 // 应用组装层：只负责组织页面模块，并把核心调度状态传给各功能组件。
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import ConfigPanel from './components/ConfigPanel.vue';
@@ -102,6 +102,16 @@ watch(
   { deep: true },
 );
 
+onMounted(() => {
+  if (!restoredFromStorage.value) return;
+
+  message.success({
+    content: '已从本地恢复上次比赛进度',
+    duration: 3,
+  });
+  restoredFromStorage.value = false;
+});
+
 function handleGenerateSchedule() {
   generateSchedule();
   activeTab.value = 'league';
@@ -161,16 +171,6 @@ function confirmCompletedScoreEdit() {
       </a-layout-header>
 
       <a-layout-content class="app-content">
-        <a-alert
-          v-if="restoredFromStorage"
-          class="restore-alert"
-          message="已从本地恢复上次比赛进度"
-          type="success"
-          show-icon
-          closable
-          @close="restoredFromStorage = false"
-        />
-
         <a-tabs v-model:active-key="activeTab" class="stage-tabs">
           <a-tab-pane key="league" tab="积分赛程">
             <ConfigPanel

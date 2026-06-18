@@ -1,16 +1,18 @@
 <script setup>
 // 排位赛面板：负责从单循环排名生成第二阶段，也支持手动创建 4 队排位赛。
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import {
   BranchesOutlined,
   CrownOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   PlayCircleOutlined,
   StarOutlined,
   TrophyOutlined,
 } from '@ant-design/icons-vue';
 import PasswordConfirm from './PasswordConfirm.vue';
 import SummaryGrid from './SummaryGrid.vue';
+import { exportElementAsPng } from '../utils/exportImage';
 
 const props = defineProps({
   hasLeagueSchedule: { type: Boolean, required: true },
@@ -41,6 +43,7 @@ const emit = defineEmits([
 const canGenerateFromRanking = computed(
   () => props.hasLeagueSchedule && props.isLeagueComplete && !props.hasPlayoffSchedule,
 );
+const playoffExportRef = ref(null);
 
 const qualifiedTeams = computed(() =>
   props.rankedLeagueTeams.slice(0, props.playoffAdvanceCount),
@@ -155,10 +158,24 @@ function getPlacement(match, side) {
   }
   return null;
 }
+
+function exportPlayoffResultImage() {
+  exportElementAsPng(playoffExportRef.value, `排位赛结果-${new Date().toISOString().slice(0, 10)}.png`, {
+    className: 'playoff-result-export',
+    onClone: (clone) => {
+      clone.querySelector('.card-head-tools')?.remove();
+    },
+    extraCss: `
+      .playoff-result-export .playoff-band {
+        margin: 0;
+      }
+    `,
+  });
+}
 </script>
 
 <template>
-  <section class="playoff-band">
+  <section ref="playoffExportRef" class="playoff-band">
     <a-card :bordered="false">
       <template #title>
         <span class="section-title">
@@ -169,6 +186,10 @@ function getPlacement(match, side) {
       <template v-if="hasPlayoffSchedule" #extra>
         <div class="card-head-tools">
           <SummaryGrid :summary="summary" :progress-percent="progressPercent" />
+          <a-button class="tool-action-button" @click="exportPlayoffResultImage">
+            <template #icon><DownloadOutlined /></template>
+            导出结果
+          </a-button>
           <PasswordConfirm
             title="清空排位赛"
             description="此操作会清空排位赛程和已录入进度。"

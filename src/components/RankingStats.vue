@@ -1,9 +1,10 @@
 <script setup>
-// 排名对战表：在组件内部维护排序规则，并展示排名、胜场、净胜分和对战结果。
-import { computed } from 'vue';
+// 排名对战表：在组件内部维护排序规则，并展示排名、胜负场、进度、净胜分和对战结果。
+import { computed, ref } from 'vue';
 import { DownloadOutlined, TrophyOutlined } from '@ant-design/icons-vue';
 import { rankingSortOptions } from '../constants/tables';
 import { useRankingStats } from '../composables/useRankingStats';
+import { exportElementAsPng } from '../utils/exportImage';
 
 const props = defineProps({
   teamNames: { type: Array, required: true },
@@ -18,6 +19,7 @@ const rankingSortModel = computed({
   get: () => props.rankingSort,
   set: (value) => emit('update:rankingSort', value),
 });
+const rankingExportRef = ref(null);
 const teamNamesSource = computed(() => props.teamNames);
 const matchesSource = computed(() => props.matches);
 const completedMatchesSource = computed(() => props.completedMatches);
@@ -36,6 +38,10 @@ const {
   completedMatches: completedMatchesSource,
   rankingSort: rankingSortModel,
 });
+
+const exportColumns = computed(() =>
+  matrixColumns.value.filter((column) => column.key !== 'playedProgress'),
+);
 
 function shouldShowRankDecorations(rank) {
   return isRankingFinalized.value && rankingSortModel.value !== 'original' && [1, 2, 3].includes(rank);
@@ -102,13 +108,32 @@ function formatExcelTextCell(value) {
   return escapedText;
 }
 
+function exportResultImage() {
+  exportElementAsPng(rankingExportRef.value, `排名对战表-${new Date().toISOString().slice(0, 10)}.png`, {
+    className: 'ranking-result-export',
+    onClone: (clone) => {
+      clone.querySelector('.ranking-tools')?.remove();
+    },
+    extraCss: `
+      .ranking-result-export .matrix-table th:last-child,
+      .ranking-result-export .matrix-table td:last-child,
+      .ranking-result-export .matrix-table col:last-child {
+        display: none !important;
+      }
+      .ranking-result-export .ranking-band {
+        margin: 0;
+      }
+    `,
+  });
+}
+
 function exportExcel() {
-  const headerCells = matrixColumns.value
+  const headerCells = exportColumns.value
     .map((column) => `<th>${escapeCell(column.title)}</th>`)
     .join('');
   const bodyRows = matrixRows.value
     .map((row) => {
-      const cells = matrixColumns.value
+      const cells = exportColumns.value
         .map(
           (column) =>
             `<td class="text-cell" style="mso-number-format:'\\@';">${formatExcelTextCell(getCellText(row, column))}</td>`,
@@ -145,10 +170,11 @@ function exportExcel() {
   link.click();
   URL.revokeObjectURL(url);
 }
+
 </script>
 
 <template>
-  <section class="ranking-band">
+  <section ref="rankingExportRef" class="ranking-band">
     <a-card :bordered="false">
       <template #title>排名对战表</template>
       <template #extra>
@@ -156,6 +182,10 @@ function exportExcel() {
           <a-button size="small" @click="exportExcel">
             <template #icon><DownloadOutlined /></template>
             导出 Excel
+          </a-button>
+          <a-button size="small" @click="exportResultImage">
+            <template #icon><DownloadOutlined /></template>
+            导出结果
           </a-button>
           <a-select
             v-model:value="rankingSortModel"
