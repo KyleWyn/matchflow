@@ -37,6 +37,10 @@ function getRecommendedMatch(venue) {
   return props.recommendations[venue.id] ?? null;
 }
 
+function getVenueStageMatch(venue) {
+  return getMatchById(venue.currentMatchId) ?? getRecommendedMatch(venue);
+}
+
 function getVenueName(venueId) {
   return props.venues.find((venue) => venue.id === venueId)?.name ?? '-';
 }
@@ -52,6 +56,13 @@ function hasActiveTeamConflict(match) {
   );
 
   return getTeamIds(match).some((teamId) => activeTeamIds.has(teamId));
+}
+
+function getStageRibbonClass(match) {
+  if (match?.playoffRole === 'final') return 'is-final';
+  if (match?.playoffRole === 'third-place') return 'is-third-place';
+  if (match?.playoffRole?.startsWith('semifinal')) return 'is-semifinal';
+  return '';
 }
 
 </script>
@@ -72,15 +83,21 @@ function hasActiveTeamConflict(match) {
         </span>
       </template>
 
+      <template #extra>
+        <span
+          v-if="getVenueStageMatch(venue)?.stage === 'playoff'"
+          :class="['venue-stage-ribbon', getStageRibbonClass(getVenueStageMatch(venue))]"
+        >
+          {{ getVenueStageMatch(venue).bracketLabel }}
+        </span>
+      </template>
+
       <template v-if="getMatchById(venue.currentMatchId)">
         <div class="match-now">
           <div class="venue-state-head">
             <a-tag color="blue">
               <template #icon><ClockCircleOutlined /></template>
               进行中
-            </a-tag>
-            <a-tag v-if="getMatchById(venue.currentMatchId).stage === 'playoff'" color="purple">
-              {{ getMatchById(venue.currentMatchId).bracketLabel }}
             </a-tag>
           </div>
           <div class="venue-matchup">
@@ -118,9 +135,6 @@ function hasActiveTeamConflict(match) {
           <div class="venue-state-head">
             <a-tag color="default">空闲</a-tag>
             <span>推荐下一场</span>
-            <a-tag v-if="getRecommendedMatch(venue).stage === 'playoff'" color="purple">
-              {{ getRecommendedMatch(venue).bracketLabel }}
-            </a-tag>
           </div>
           <div class="venue-matchup">
             <strong class="venue-team-name" :title="getRecommendedMatch(venue).teamA.name">

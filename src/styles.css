@@ -488,6 +488,51 @@ input {
   font-size: 14px;
 }
 
+.venue-stage-ribbon {
+  --stage-color: #5b21b6;
+  --stage-border: #c4b5fd;
+  --stage-bg: #f5f0ff;
+  --stage-shadow: rgba(91, 33, 182, 0.12);
+  min-height: 24px;
+  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--stage-border);
+  border-radius: 8px 0 8px 0;
+  color: var(--stage-color);
+  background: var(--stage-bg);
+  box-shadow: 0 3px 10px var(--stage-shadow);
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.venue-stage-ribbon.is-final,
+.schedule-stage-ribbon.is-final {
+  --stage-color: #8a5a00;
+  --stage-border: #f0c36d;
+  --stage-bg: #fff7df;
+  --stage-shadow: rgba(138, 90, 0, 0.12);
+}
+
+.venue-stage-ribbon.is-third-place,
+.schedule-stage-ribbon.is-third-place {
+  --stage-color: #9f1239;
+  --stage-border: #fda4af;
+  --stage-bg: #fff1f2;
+  --stage-shadow: rgba(159, 18, 57, 0.12);
+}
+
+.venue-stage-ribbon.is-semifinal,
+.schedule-stage-ribbon.is-semifinal {
+  --stage-color: #5b21b6;
+  --stage-border: #c4b5fd;
+  --stage-bg: #f5f0ff;
+  --stage-shadow: rgba(91, 33, 182, 0.12);
+}
+
 .venue-matchup {
   min-width: 0;
   display: grid;
@@ -994,6 +1039,31 @@ input {
   background: #f3f5f8;
 }
 
+.schedule-stage-ribbon {
+  --stage-color: #5b21b6;
+  --stage-border: #c4b5fd;
+  --stage-bg: #f5f0ff;
+  --stage-shadow: rgba(91, 33, 182, 0.1);
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 1;
+  height: 20px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--stage-border);
+  border-radius: 5px;
+  color: var(--stage-color);
+  background: var(--stage-bg);
+  box-shadow: 0 2px 8px var(--stage-shadow);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .schedule-cell-meta {
   position: absolute;
   top: 8px;
@@ -1013,6 +1083,10 @@ input {
 
 .schedule-cell:not(.has-status-ribbon) .schedule-cell-meta {
   right: 10px;
+}
+
+.schedule-cell.has-stage-ribbon .schedule-cell-meta {
+  left: 92px;
 }
 
 .schedule-cell-meta .ant-tag {

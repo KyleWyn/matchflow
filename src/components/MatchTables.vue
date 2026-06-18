@@ -208,6 +208,13 @@ function getStatusRibbonClass(match) {
   return '';
 }
 
+function getStageRibbonClass(match) {
+  if (match?.playoffRole === 'final') return 'is-final';
+  if (match?.playoffRole === 'third-place') return 'is-third-place';
+  if (match?.playoffRole?.startsWith('semifinal')) return 'is-semifinal';
+  return '';
+}
+
 function getScoreText(match) {
   if (!Number.isFinite(match?.scoreA) || !Number.isFinite(match?.scoreB)) return '-';
   return `${match.scoreA}:${match.scoreB}`;
@@ -256,8 +263,7 @@ function getActualOrderText(match) {
 
 function hasCellMeta(match) {
   return Boolean(
-    match?.stage === 'playoff' ||
-      (tableViewModel.value === 'plan' && isVenueChanged(match)) ||
+    (tableViewModel.value === 'plan' && isVenueChanged(match)) ||
       shouldShowActualOrderBadge(match),
   );
 }
@@ -476,6 +482,7 @@ function exportCurrent() {
               class="schedule-cell"
               :class="{
                 'has-status-ribbon': getStatusRibbonText(record.matchesByVenue[column.key]),
+                'has-stage-ribbon': record.matchesByVenue[column.key].stage === 'playoff',
                 'has-cell-meta': hasCellMeta(record.matchesByVenue[column.key]),
               }"
               role="button"
@@ -493,6 +500,12 @@ function exportCurrent() {
               >
                 {{ getStatusRibbonText(record.matchesByVenue[column.key]) }}
               </span>
+              <span
+                v-if="record.matchesByVenue[column.key].stage === 'playoff'"
+                :class="['schedule-stage-ribbon', getStageRibbonClass(record.matchesByVenue[column.key])]"
+              >
+                {{ record.matchesByVenue[column.key].bracketLabel }}
+              </span>
               <div class="schedule-matchup">
                 <strong class="schedule-team-name" :title="record.matchesByVenue[column.key].teamA.name">
                   {{ record.matchesByVenue[column.key].teamA.name }}
@@ -503,9 +516,6 @@ function exportCurrent() {
                 </strong>
               </div>
               <div class="schedule-cell-meta">
-                <a-tag v-if="record.matchesByVenue[column.key].stage === 'playoff'" color="purple">
-                  {{ record.matchesByVenue[column.key].bracketLabel }}
-                </a-tag>
                 <a-tag
                   v-if="tableViewModel === 'plan' && isVenueChanged(record.matchesByVenue[column.key])"
                   :style="getVenueTagStyle(record.matchesByVenue[column.key])"
