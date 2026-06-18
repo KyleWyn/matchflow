@@ -712,27 +712,33 @@ input {
   background: #fbfcfe;
 }
 
-.playoff-match-card.is-score-editable {
-  cursor: pointer;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
-}
-
-.playoff-match-card.is-score-editable:hover,
-.playoff-match-card.is-score-editable:focus-visible {
-  border-color: #91caff;
-  box-shadow: 0 4px 14px rgba(15, 47, 77, 0.1);
-  outline: none;
-}
-
-.playoff-match-card.is-score-editable:active {
-  transform: translateY(1px);
-}
-
 .playoff-match-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.playoff-status-tag.ant-tag {
+  margin-inline-end: 0;
+  user-select: none;
+}
+
+.playoff-status-tag.is-score-editable.ant-tag {
+  cursor: pointer;
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.playoff-status-tag.is-score-editable.ant-tag:hover,
+.playoff-status-tag.is-score-editable.ant-tag:focus-visible {
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.16);
+  outline: none;
+}
+
+.playoff-status-tag.is-score-editable.ant-tag:active {
+  transform: translateY(1px);
 }
 
 .playoff-final-card {

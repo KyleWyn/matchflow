@@ -118,6 +118,13 @@ function editMatchScore(match) {
   emit('edit-score', match);
 }
 
+function handleStatusKeydown(event, match) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+
+  event.preventDefault();
+  editMatchScore(match);
+}
+
 function getTeamScore(match, side) {
   const score = side === 'A' ? match.scoreA : match.scoreB;
   return Number.isFinite(score) ? score : '-';
@@ -283,17 +290,18 @@ function getPlacement(match, side) {
             <div
               v-for="match in semifinalMatches"
               :key="match.id"
-              :class="['playoff-match-card', { 'is-score-editable': canEditMatchScore(match) }]"
-              :role="canEditMatchScore(match) ? 'button' : undefined"
-              :tabindex="canEditMatchScore(match) ? 0 : undefined"
-              :title="getScoreEditTitle(match)"
-              @click="editMatchScore(match)"
-              @keydown.enter.prevent="editMatchScore(match)"
-              @keydown.space.prevent="editMatchScore(match)"
+              class="playoff-match-card"
             >
               <div class="playoff-match-head">
                 <span>{{ match.bracketLabel }}</span>
-                <a-tag :color="getStatusColor(match.status)">
+                <a-tag
+                  :class="['playoff-status-tag', { 'is-score-editable': canEditMatchScore(match) }]"
+                  :color="getStatusColor(match.status)"
+                  :tabindex="canEditMatchScore(match) ? 0 : undefined"
+                  :title="getScoreEditTitle(match)"
+                  @click.stop="editMatchScore(match)"
+                  @keydown="handleStatusKeydown($event, match)"
+                >
                   {{ getStatusText(match.status) }}
                 </a-tag>
               </div>
@@ -323,18 +331,18 @@ function getPlacement(match, side) {
               :class="[
                 'playoff-match-card',
                 'playoff-final-card',
-                { 'is-score-editable': canEditMatchScore(finalMatch) },
               ]"
-              :role="canEditMatchScore(finalMatch) ? 'button' : undefined"
-              :tabindex="canEditMatchScore(finalMatch) ? 0 : undefined"
-              :title="getScoreEditTitle(finalMatch)"
-              @click="editMatchScore(finalMatch)"
-              @keydown.enter.prevent="editMatchScore(finalMatch)"
-              @keydown.space.prevent="editMatchScore(finalMatch)"
             >
               <div class="playoff-match-head">
                 <span>{{ finalMatch.bracketLabel }}</span>
-                <a-tag :color="getStatusColor(finalMatch.status)">
+                <a-tag
+                  :class="['playoff-status-tag', { 'is-score-editable': canEditMatchScore(finalMatch) }]"
+                  :color="getStatusColor(finalMatch.status)"
+                  :tabindex="canEditMatchScore(finalMatch) ? 0 : undefined"
+                  :title="getScoreEditTitle(finalMatch)"
+                  @click.stop="editMatchScore(finalMatch)"
+                  @keydown="handleStatusKeydown($event, finalMatch)"
+                >
                   {{ getStatusText(finalMatch.status) }}
                 </a-tag>
               </div>
@@ -367,17 +375,18 @@ function getPlacement(match, side) {
             </div>
             <div
               v-if="thirdPlaceMatch"
-              :class="['playoff-match-card', { 'is-score-editable': canEditMatchScore(thirdPlaceMatch) }]"
-              :role="canEditMatchScore(thirdPlaceMatch) ? 'button' : undefined"
-              :tabindex="canEditMatchScore(thirdPlaceMatch) ? 0 : undefined"
-              :title="getScoreEditTitle(thirdPlaceMatch)"
-              @click="editMatchScore(thirdPlaceMatch)"
-              @keydown.enter.prevent="editMatchScore(thirdPlaceMatch)"
-              @keydown.space.prevent="editMatchScore(thirdPlaceMatch)"
+              class="playoff-match-card"
             >
               <div class="playoff-match-head">
                 <span>{{ thirdPlaceMatch.bracketLabel }}</span>
-                <a-tag :color="getStatusColor(thirdPlaceMatch.status)">
+                <a-tag
+                  :class="['playoff-status-tag', { 'is-score-editable': canEditMatchScore(thirdPlaceMatch) }]"
+                  :color="getStatusColor(thirdPlaceMatch.status)"
+                  :tabindex="canEditMatchScore(thirdPlaceMatch) ? 0 : undefined"
+                  :title="getScoreEditTitle(thirdPlaceMatch)"
+                  @click.stop="editMatchScore(thirdPlaceMatch)"
+                  @keydown="handleStatusKeydown($event, thirdPlaceMatch)"
+                >
                   {{ getStatusText(thirdPlaceMatch.status) }}
                 </a-tag>
               </div>
