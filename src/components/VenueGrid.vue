@@ -9,7 +9,7 @@ import {
   SwapOutlined,
   UndoOutlined,
 } from '@ant-design/icons-vue';
-import { formatTime, getPairing } from '../utils/format';
+import { formatTime } from '../utils/format';
 import { getTeamIds } from '../utils/schedule';
 
 const props = defineProps({
@@ -74,14 +74,24 @@ function hasActiveTeamConflict(match) {
 
       <template v-if="getMatchById(venue.currentMatchId)">
         <div class="match-now">
-          <a-tag color="blue">
-            <template #icon><ClockCircleOutlined /></template>
-            进行中
-          </a-tag>
-          <a-tag v-if="getMatchById(venue.currentMatchId).stage === 'playoff'" color="purple">
-            {{ getMatchById(venue.currentMatchId).bracketLabel }}
-          </a-tag>
-          <h2>{{ getPairing(getMatchById(venue.currentMatchId)) }}</h2>
+          <div class="venue-state-head">
+            <a-tag color="blue">
+              <template #icon><ClockCircleOutlined /></template>
+              进行中
+            </a-tag>
+            <a-tag v-if="getMatchById(venue.currentMatchId).stage === 'playoff'" color="purple">
+              {{ getMatchById(venue.currentMatchId).bracketLabel }}
+            </a-tag>
+          </div>
+          <div class="venue-matchup">
+            <strong class="venue-team-name" :title="getMatchById(venue.currentMatchId).teamA.name">
+              {{ getMatchById(venue.currentMatchId).teamA.name }}
+            </strong>
+            <span class="venue-vs" aria-label="对阵">VS</span>
+            <strong class="venue-team-name" :title="getMatchById(venue.currentMatchId).teamB.name">
+              {{ getMatchById(venue.currentMatchId).teamB.name }}
+            </strong>
+          </div>
           <p>开始时间：{{ formatTime(getMatchById(venue.currentMatchId).startedAt) }}</p>
         </div>
         <a-space direction="vertical" class="venue-actions">
@@ -105,12 +115,22 @@ function hasActiveTeamConflict(match) {
 
       <template v-else>
         <div v-if="getRecommendedMatch(venue)" class="recommend-state">
-          <a-tag color="default">空闲</a-tag>
-          <span>推荐下一场</span>
-          <a-tag v-if="getRecommendedMatch(venue).stage === 'playoff'" color="purple">
-            {{ getRecommendedMatch(venue).bracketLabel }}
-          </a-tag>
-          <h2>{{ getPairing(getRecommendedMatch(venue)) }}</h2>
+          <div class="venue-state-head">
+            <a-tag color="default">空闲</a-tag>
+            <span>推荐下一场</span>
+            <a-tag v-if="getRecommendedMatch(venue).stage === 'playoff'" color="purple">
+              {{ getRecommendedMatch(venue).bracketLabel }}
+            </a-tag>
+          </div>
+          <div class="venue-matchup">
+            <strong class="venue-team-name" :title="getRecommendedMatch(venue).teamA.name">
+              {{ getRecommendedMatch(venue).teamA.name }}
+            </strong>
+            <span class="venue-vs" aria-label="对阵">VS</span>
+            <strong class="venue-team-name" :title="getRecommendedMatch(venue).teamB.name">
+              {{ getRecommendedMatch(venue).teamB.name }}
+            </strong>
+          </div>
           <p>计划场地：{{ getVenueName(getRecommendedMatch(venue).plannedVenueId) }}</p>
           <p v-if="hasActiveTeamConflict(getRecommendedMatch(venue))" class="venue-warning">
             对阵队伍仍在其他场地进行中

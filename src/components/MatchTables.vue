@@ -25,12 +25,12 @@ const tableViewOptions = [
 const selectedMatch = ref(null);
 
 const venuePalette = [
-  { bg: '#e6f4ff', border: '#1677ff', text: '#0958d9' },
-  { bg: '#e8f7ef', border: '#22a06b', text: '#13523a' },
-  { bg: '#fff7df', border: '#d48806', text: '#8a5a00' },
-  { bg: '#f4efff', border: '#7c3aed', text: '#5b21b6' },
-  { bg: '#fdecec', border: '#d64545', text: '#8c2f2f' },
-  { bg: '#eaf7f7', border: '#0f9f9f', text: '#0f6666' },
+  { bg: '#fff7e8', border: '#d48806', text: '#8a5a00' },
+  { bg: '#f5f0ff', border: '#7c3aed', text: '#5b21b6' },
+  { bg: '#fff0f3', border: '#c2415b', text: '#8f2439' },
+  { bg: '#f7f3ed', border: '#9a6a3a', text: '#6b4524' },
+  { bg: '#f5f6f8', border: '#64748b', text: '#334155' },
+  { bg: '#fff1e8', border: '#c65d21', text: '#8a3b12' },
 ];
 
 const venueColorMap = computed(() =>
@@ -176,6 +176,20 @@ function getStatusText(match) {
   return '未开始';
 }
 
+function getStatusRibbonText(match) {
+  if (match.status === 'completed') return '已完成';
+  if (match.status === 'playing') return '进行中';
+  if (match.status === 'locked') return '待定';
+  return '';
+}
+
+function getStatusRibbonClass(match) {
+  if (match.status === 'completed') return 'is-completed';
+  if (match.status === 'playing') return 'is-playing';
+  if (match.status === 'locked') return 'is-locked';
+  return '';
+}
+
 function getScoreText(match) {
   if (!Number.isFinite(match?.scoreA) || !Number.isFinite(match?.scoreB)) return '-';
   return `${match.scoreA}:${match.scoreB}`;
@@ -198,6 +212,14 @@ function getActualOrderIndex(match) {
 function getActualOrderText(match) {
   const actualIndex = getActualOrderIndex(match);
   return actualIndex ? `现场第 ${actualIndex} 场` : '';
+}
+
+function hasCellMeta(match) {
+  return Boolean(
+    match?.stage === 'playoff' ||
+      (tableViewModel.value === 'plan' && isVenueChanged(match)) ||
+      (tableViewModel.value === 'plan' && getActualOrderIndex(match)),
+  );
 }
 
 function getActualTimelineIndex(match) {
@@ -412,6 +434,10 @@ function exportCurrent() {
             <div
               v-if="record.matchesByVenue[column.key]"
               class="schedule-cell"
+              :class="{
+                'has-status-ribbon': getStatusRibbonText(record.matchesByVenue[column.key]),
+                'has-cell-meta': hasCellMeta(record.matchesByVenue[column.key]),
+              }"
               role="button"
               tabindex="0"
               :style="getCellStyle(record.matchesByVenue[column.key])"
@@ -419,13 +445,26 @@ function exportCurrent() {
               @keydown.enter.prevent="openMatchDetail(record.matchesByVenue[column.key])"
               @keydown.space.prevent="openMatchDetail(record.matchesByVenue[column.key])"
             >
-              <strong>{{ getPairing(record.matchesByVenue[column.key]) }}</strong>
+              <span
+                v-if="getStatusRibbonText(record.matchesByVenue[column.key])"
+                class="match-status-ribbon"
+                :class="getStatusRibbonClass(record.matchesByVenue[column.key])"
+                :title="getStatusRibbonText(record.matchesByVenue[column.key])"
+              >
+                {{ getStatusRibbonText(record.matchesByVenue[column.key]) }}
+              </span>
+              <div class="schedule-matchup">
+                <strong class="schedule-team-name" :title="record.matchesByVenue[column.key].teamA.name">
+                  {{ record.matchesByVenue[column.key].teamA.name }}
+                </strong>
+                <span class="schedule-vs" aria-label="对阵">VS</span>
+                <strong class="schedule-team-name" :title="record.matchesByVenue[column.key].teamB.name">
+                  {{ record.matchesByVenue[column.key].teamB.name }}
+                </strong>
+              </div>
               <div class="schedule-cell-meta">
                 <a-tag v-if="record.matchesByVenue[column.key].stage === 'playoff'" color="purple">
                   {{ record.matchesByVenue[column.key].bracketLabel }}
-                </a-tag>
-                <a-tag :color="getStatusColor(record.matchesByVenue[column.key].status)">
-                  {{ getStatusText(record.matchesByVenue[column.key]) }}
                 </a-tag>
                 <a-tag
                   v-if="tableViewModel === 'plan' && isVenueChanged(record.matchesByVenue[column.key])"
