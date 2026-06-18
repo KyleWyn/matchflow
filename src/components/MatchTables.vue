@@ -142,6 +142,24 @@ const actualVenueTimeline = computed(() =>
   }, {}),
 );
 
+const plannedVenueTimeline = computed(() =>
+  props.venues.reduce((timeline, venue) => {
+    const venueMatches = props.matches
+      .filter((match) => match.plannedVenueId === venue.id)
+      .sort(
+        (left, right) =>
+          (left.plannedOrder ?? left.order) - (right.plannedOrder ?? right.order),
+      );
+
+    timeline[venue.id] = venueMatches.reduce((result, match, index) => {
+      result[match.id] = { plannedIndex: index + 1 };
+      return result;
+    }, {});
+
+    return timeline;
+  }, {}),
+);
+
 const scheduleColumns = computed(() => [
   {
     title: '轮次',
@@ -209,7 +227,29 @@ function getActualOrderIndex(match) {
   return timeline.actualIndex;
 }
 
+function getPlannedOrderIndex(match) {
+  const plannedVenueId = match?.plannedVenueId;
+  const timeline = plannedVenueId ? plannedVenueTimeline.value[plannedVenueId]?.[match.id] : null;
+  return timeline?.plannedIndex ?? null;
+}
+
+function isActualOrderChanged(match) {
+  const actualIndex = getActualOrderIndex(match);
+  const plannedIndex = getPlannedOrderIndex(match);
+  return Boolean(actualIndex && plannedIndex && actualIndex !== plannedIndex);
+}
+
+function shouldShowActualOrderBadge(match) {
+  return Boolean(
+    props.tableView === 'plan' &&
+      getActualOrderIndex(match) &&
+      (isVenueChanged(match) || isActualOrderChanged(match)),
+  );
+}
+
 function getActualOrderText(match) {
+  if (!shouldShowActualOrderBadge(match)) return '';
+
   const actualIndex = getActualOrderIndex(match);
   return actualIndex ? `现场第 ${actualIndex} 场` : '';
 }
@@ -218,7 +258,7 @@ function hasCellMeta(match) {
   return Boolean(
     match?.stage === 'playoff' ||
       (tableViewModel.value === 'plan' && isVenueChanged(match)) ||
-      (tableViewModel.value === 'plan' && getActualOrderIndex(match)),
+      shouldShowActualOrderBadge(match),
   );
 }
 
@@ -473,7 +513,7 @@ function exportCurrent() {
                   {{ getVenueName(record.matchesByVenue[column.key].actualVenueId) }}
                 </a-tag>
                 <span
-                  v-if="tableViewModel === 'plan' && getActualOrderIndex(record.matchesByVenue[column.key])"
+                  v-if="shouldShowActualOrderBadge(record.matchesByVenue[column.key])"
                   class="actual-order-badge"
                   :style="getActualOrderBadgeStyle(record.matchesByVenue[column.key])"
                   title="现场顺序"
