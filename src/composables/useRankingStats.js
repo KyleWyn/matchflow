@@ -27,7 +27,7 @@ export function useRankingStats(source) {
 
   const matrixColumns = computed(() => [
     {
-      title: "排名",
+      title: rankingSort.value === "original" ? "序号" : "排名",
       dataIndex: "rank",
       key: "rank",
       fixed: "left",
@@ -41,10 +41,10 @@ export function useRankingStats(source) {
       width: 140,
     },
     {
-      title: "胜场",
-      dataIndex: "wins",
-      key: "wins",
-      width: 80,
+      title: "胜负场",
+      dataIndex: "winLoss",
+      key: "winLoss",
+      width: 90,
     },
     {
       title: "净胜分",
@@ -59,6 +59,12 @@ export function useRankingStats(source) {
       key: team.id,
       width: 120,
     })),
+    {
+      title: "进度",
+      dataIndex: "playedProgress",
+      key: "playedProgress",
+      width: 120,
+    },
   ]);
 
   const matrixRows = computed(() =>
@@ -66,7 +72,10 @@ export function useRankingStats(source) {
       id: team.id,
       name: team.name,
       rank: team.rank,
-      wins: team.wins,
+      winLoss: `${team.wins}-${team.losses}`,
+      played: team.played,
+      totalMatches: Math.max(0, teamNames.value.length - 1),
+      playedProgress: `${team.played}/${Math.max(0, teamNames.value.length - 1)}`,
       diff: team.diff,
     })),
   );

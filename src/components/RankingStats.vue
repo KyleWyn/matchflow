@@ -21,6 +21,9 @@ const rankingSortModel = computed({
 const teamNamesSource = computed(() => props.teamNames);
 const matchesSource = computed(() => props.matches);
 const completedMatchesSource = computed(() => props.completedMatches);
+const isRankingFinalized = computed(
+  () => props.matches.length > 0 && props.completedMatches.length === props.matches.length,
+);
 
 const {
   matrixColumns,
@@ -35,15 +38,16 @@ const {
 });
 
 function shouldShowRankDecorations(rank) {
-  return rankingSortModel.value !== 'original' && [1, 2, 3].includes(rank);
+  return isRankingFinalized.value && rankingSortModel.value !== 'original' && [1, 2, 3].includes(rank);
 }
 
 function getDisplayRankClass(record) {
-  return rankingSortModel.value === 'original' ? '' : getRankClass(record);
+  if (!isRankingFinalized.value || rankingSortModel.value === 'original') return '';
+  return getRankClass(record);
 }
 
 function getCellText(record, column) {
-  if (['rank', 'name', 'wins', 'diff'].includes(column.key)) {
+  if (['rank', 'name', 'winLoss', 'playedProgress', 'diff'].includes(column.key)) {
     return record[column.key];
   }
 
@@ -61,7 +65,7 @@ function getMatrixMatch(teamId, opponentId) {
 }
 
 function canEditCell(record, column) {
-  if (['rank', 'name', 'wins', 'diff'].includes(column.key)) return false;
+  if (['rank', 'name', 'winLoss', 'playedProgress', 'diff'].includes(column.key)) return false;
 
   const match = getMatrixMatch(record.id, column.key);
   return ['pending', 'playing', 'completed'].includes(match?.status);
@@ -72,6 +76,11 @@ function editCellScore(record, column) {
   if (!match) return;
 
   emit('edit-score', match);
+}
+
+function getPlayedProgressPercent(record) {
+  if (!record.totalMatches) return 0;
+  return Math.round((record.played / record.totalMatches) * 100);
 }
 
 function escapeCell(value) {
@@ -176,7 +185,22 @@ function exportExcel() {
           <template v-if="column.key === 'name'">
             <strong>{{ record.name }}</strong>
           </template>
-          <template v-else-if="['wins', 'diff'].includes(column.key)">
+          <template v-else-if="column.key === 'playedProgress'">
+            <div
+              :class="[
+                'played-progress-bar',
+                { 'is-complete': record.totalMatches > 0 && record.played === record.totalMatches },
+              ]"
+              :title="`已赛 ${record.playedProgress}`"
+            >
+              <span
+                class="played-progress-fill"
+                :style="{ width: `${getPlayedProgressPercent(record)}%` }"
+              />
+              <span class="played-progress-text">{{ record.playedProgress }}</span>
+            </div>
+          </template>
+          <template v-else-if="['winLoss', 'diff'].includes(column.key)">
             {{ record[column.key] }}
           </template>
           <template v-else-if="column.key !== 'rank'">
