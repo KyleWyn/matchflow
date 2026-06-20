@@ -1,5 +1,6 @@
 <script setup>
-// 赛程配置面板：管理生成前的队伍数、场地数和队伍名称输入。
+// 赛程配置面板：管理队伍/场地配置；生成后仍允许修改显示名称。
+import { ref } from 'vue';
 import { DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons-vue';
 import PasswordConfirm from './PasswordConfirm.vue';
 import SummaryGrid from './SummaryGrid.vue';
@@ -23,6 +24,10 @@ const emit = defineEmits([
   'reset',
 ]);
 
+const basicInfoModalOpen = ref(false);
+const draftTeamNames = ref([]);
+const draftVenueNames = ref([]);
+
 function updateTeamName(index, value) {
   // 队名数组由父级持有，这里通过复制后 emit 避免直接修改 props。
   const nextNames = [...props.teamNames];
@@ -34,6 +39,30 @@ function updateVenueName(index, value) {
   const nextNames = [...props.venueNames];
   nextNames[index] = value;
   emit('update:venueNames', nextNames);
+}
+
+function openBasicInfoModal() {
+  draftTeamNames.value = [...props.teamNames];
+  draftVenueNames.value = [...props.venueNames];
+  basicInfoModalOpen.value = true;
+}
+
+function updateDraftTeamName(index, value) {
+  const nextNames = [...draftTeamNames.value];
+  nextNames[index] = value;
+  draftTeamNames.value = nextNames;
+}
+
+function updateDraftVenueName(index, value) {
+  const nextNames = [...draftVenueNames.value];
+  nextNames[index] = value;
+  draftVenueNames.value = nextNames;
+}
+
+function saveBasicInfo() {
+  emit('update:teamNames', draftTeamNames.value);
+  emit('update:venueNames', draftVenueNames.value);
+  basicInfoModalOpen.value = false;
 }
 </script>
 
@@ -73,6 +102,11 @@ function updateVenueName(index, value) {
         <a-form-item v-if="hasSchedule" class="config-summary-item">
           <SummaryGrid :summary="summary" :progress-percent="progressPercent" />
         </a-form-item>
+        <a-form-item v-if="hasSchedule">
+          <a-button class="tool-action-button" @click="openBasicInfoModal">
+            修改基础信息
+          </a-button>
+        </a-form-item>
         <a-form-item>
           <PasswordConfirm
             title="清空积分赛程"
@@ -93,7 +127,9 @@ function updateVenueName(index, value) {
         <div class="setup-editor-grid">
           <div class="setup-editor-block team-editor-block">
             <div class="setup-editor-head">
-              <h3 class="setup-editor-title">队伍名称</h3>
+              <div>
+                <h3 class="setup-editor-title">队伍名称</h3>
+              </div>
             </div>
             <div class="team-editor">
               <label v-for="(_, index) in teamNames" :key="index" class="team-name-field">
@@ -108,8 +144,10 @@ function updateVenueName(index, value) {
           </div>
           <div class="setup-editor-block venue-editor-block">
             <div class="setup-editor-head">
-              <h3 class="setup-editor-title">场地编号</h3>
-              <span>填数字会显示为“6号场地”</span>
+              <div>
+                <h3 class="setup-editor-title">场地编号</h3>
+                <p>填数字会显示为“6号场地”。</p>
+              </div>
             </div>
             <div class="venue-name-editor">
               <label v-for="(_, index) in venueNames" :key="index" class="team-name-field">
@@ -124,6 +162,53 @@ function updateVenueName(index, value) {
           </div>
         </div>
       </template>
+
+      <a-modal
+        v-model:open="basicInfoModalOpen"
+        title="修改基础信息"
+        ok-text="保存"
+        cancel-text="取消"
+        @ok="saveBasicInfo"
+      >
+        <div class="basic-info-modal">
+          <div class="basic-info-section is-team">
+            <div class="setup-editor-head">
+              <div>
+                <h3 class="setup-editor-title">队伍名称</h3>
+                <p>仅修改显示名称，不重排赛程。</p>
+              </div>
+            </div>
+            <div class="team-editor">
+              <label v-for="(_, index) in draftTeamNames" :key="index" class="team-name-field">
+                <span>队伍 {{ index + 1 }}</span>
+                <a-input
+                  :value="draftTeamNames[index]"
+                  :placeholder="`队伍 ${index + 1}`"
+                  @update:value="updateDraftTeamName(index, $event)"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="basic-info-section is-venue">
+            <div class="setup-editor-head">
+              <div>
+                <h3 class="setup-editor-title">场地编号</h3>
+                <p>填数字会显示为“6号场地”。</p>
+              </div>
+            </div>
+            <div class="venue-name-editor">
+              <label v-for="(_, index) in draftVenueNames" :key="index" class="team-name-field">
+                <span>场地 {{ index + 1 }}</span>
+                <a-input
+                  :value="draftVenueNames[index]"
+                  placeholder="如：6 或 A馆"
+                  @update:value="updateDraftVenueName(index, $event)"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </a-modal>
     </a-card>
   </section>
 </template>

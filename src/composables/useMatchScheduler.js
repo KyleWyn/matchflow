@@ -37,6 +37,7 @@ export function useMatchScheduler() {
   const dynamicMatchIdsByVenue = ref({ league: {}, playoff: {} });
   const playoffAdvanceCount = ref(4);
   const manualPlayoffNames = ref(createDefaultTeamNames(4));
+  const playoffSource = ref(null);
 
   const hasSchedule = computed(() => matches.value.length > 0);
   const leagueMatches = computed(() =>
@@ -392,6 +393,7 @@ export function useMatchScheduler() {
       playoff: {},
     };
     dynamicMatchIdsByVenue.value = { ...dynamicMatchIdsByVenue.value, playoff: {} };
+    playoffSource.value = 'ranking';
   }
 
   function generateManualPlayoff() {
@@ -408,6 +410,7 @@ export function useMatchScheduler() {
     recentTeamsByStage.value = { ...recentTeamsByStage.value, playoff: [] };
     skippedMatchIdsByVenue.value = { ...skippedMatchIdsByVenue.value, playoff: {} };
     dynamicMatchIdsByVenue.value = { ...dynamicMatchIdsByVenue.value, playoff: {} };
+    playoffSource.value = 'manual';
   }
 
   function createPlayoffMatches(teams) {
@@ -611,8 +614,51 @@ export function useMatchScheduler() {
     playoffAdvanceCount.value = 4;
     manualPlayoffNames.value = createDefaultTeamNames(4);
     playoffVenueNames.value = createDefaultVenueNames(playoffVenueCount.value);
+    playoffSource.value = null;
     restoredFromStorage.value = false;
     if (!matches.value.length) localStorage.removeItem(STORAGE_KEY);
+  }
+
+  function syncTeamNamesByStage(stage, names) {
+    const teamNameMap = createTeams(names).reduce((result, team) => {
+      result[team.id] = team.name;
+      return result;
+    }, {});
+
+    matches.value.forEach((match) => {
+      if (getStageFromMatch(match) !== stage) return;
+      updateMatchTeamName(match, 'teamA', teamNameMap);
+      updateMatchTeamName(match, 'teamB', teamNameMap);
+    });
+  }
+
+  function syncLeagueTeamNames(names) {
+    const teamNameMap = createTeams(names).reduce((result, team) => {
+      result[team.id] = team.name;
+      return result;
+    }, {});
+
+    matches.value.forEach((match) => {
+      if (getStageFromMatch(match) !== 'league' && playoffSource.value !== 'ranking') return;
+      updateMatchTeamName(match, 'teamA', teamNameMap);
+      updateMatchTeamName(match, 'teamB', teamNameMap);
+    });
+  }
+
+  function updateMatchTeamName(match, side, teamNameMap) {
+    const team = match[side];
+    if (!team || team.placeholder || !teamNameMap[team.id]) return;
+    team.name = teamNameMap[team.id];
+  }
+
+  function syncVenueNames(stage, names) {
+    const venueStore = getVenueStore(stage);
+    const normalizedNames = normalizeVenueNames(venueStore.value.length, names);
+    const nextVenues = createVenues(venueStore.value.length, normalizedNames);
+    venueStore.value = venueStore.value.map((venue, index) => ({
+      ...venue,
+      name: nextVenues[index]?.name ?? venue.name,
+    }));
   }
 
   function saveState() {
@@ -635,6 +681,7 @@ export function useMatchScheduler() {
         dynamicMatchIdsByVenue: dynamicMatchIdsByVenue.value,
         playoffAdvanceCount: playoffAdvanceCount.value,
         manualPlayoffNames: manualPlayoffNames.value,
+        playoffSource: playoffSource.value,
       }),
     );
   }
@@ -681,6 +728,7 @@ export function useMatchScheduler() {
       manualPlayoffNames.value = Array.isArray(state.manualPlayoffNames)
         ? normalizeTeamNames(4, state.manualPlayoffNames)
         : createDefaultTeamNames(4);
+      playoffSource.value = state.playoffSource ?? inferPlayoffSource();
       restoredFromStorage.value = matches.value.length > 0;
     } catch {
       localStorage.removeItem(STORAGE_KEY);
@@ -759,6 +807,11 @@ export function useMatchScheduler() {
     }));
   }
 
+  function inferPlayoffSource() {
+    if (!hasPlayoffSchedule.value) return null;
+    return hasLeagueSchedule.value ? 'ranking' : 'manual';
+  }
+
   function extractVenueNames(value) {
     return Array.isArray(value)
       ? value.map((venue) => venue?.name).filter(Boolean)
@@ -781,6 +834,7 @@ export function useMatchScheduler() {
       dynamicMatchIdsByVenue: dynamicMatchIdsByVenue.value,
       playoffAdvanceCount: playoffAdvanceCount.value,
       manualPlayoffNames: manualPlayoffNames.value,
+      playoffSource: playoffSource.value,
     }),
     saveState,
     { deep: true },
@@ -791,6 +845,18 @@ export function useMatchScheduler() {
       leagueTeamNames.value = normalizeTeamNames(count, leagueTeamNames.value);
     }
   });
+
+  watch(leagueTeamNames, (names) => {
+    if (hasLeagueSchedule.value) {
+      syncLeagueTeamNames(names);
+    }
+  }, { deep: true });
+
+  watch(leagueVenueNames, (names) => {
+    if (hasLeagueSchedule.value) {
+      syncVenueNames('league', names);
+    }
+  }, { deep: true });
 
   watch(leagueVenueCount, (count) => {
     if (!hasLeagueSchedule.value) {
@@ -803,6 +869,18 @@ export function useMatchScheduler() {
       playoffVenueNames.value = normalizeVenueNames(count, playoffVenueNames.value);
     }
   });
+
+  watch(playoffVenueNames, (names) => {
+    if (hasPlayoffSchedule.value) {
+      syncVenueNames('playoff', names);
+    }
+  }, { deep: true });
+
+  watch(manualPlayoffNames, (names) => {
+    if (hasPlayoffSchedule.value && playoffSource.value === 'manual') {
+      syncTeamNamesByStage('playoff', names);
+    }
+  }, { deep: true });
 
   onMounted(restoreState);
 
@@ -839,6 +917,7 @@ export function useMatchScheduler() {
     playoffSummary,
     rankedLeagueTeams,
     playoffAdvanceCount,
+    playoffSource,
     playoffFinalStandings,
     arrangeRecommendedMatch,
     undoVenueMatch,

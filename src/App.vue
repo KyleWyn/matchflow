@@ -61,6 +61,7 @@ const {
   playoffSummary,
   rankedLeagueTeams,
   playoffAdvanceCount,
+  playoffSource,
   playoffFinalStandings,
   arrangeRecommendedMatch,
   undoVenueMatch,
@@ -229,6 +230,7 @@ function confirmCompletedScoreEdit() {
               :is-league-complete="isLeagueComplete"
               :playoff-matches="playoffMatches"
               :ranked-league-teams="rankedLeagueTeams"
+              :playoff-source="playoffSource"
               :final-standings="playoffFinalStandings"
               :summary="playoffSummary"
               :progress-percent="playoffProgressPercent"

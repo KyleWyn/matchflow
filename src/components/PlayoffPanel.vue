@@ -24,6 +24,7 @@ const props = defineProps({
   manualPlayoffNames: { type: Array, required: true },
   playoffMatches: { type: Array, required: true },
   rankedLeagueTeams: { type: Array, required: true },
+  playoffSource: { type: String, default: null },
   finalStandings: { type: Array, required: true },
   summary: { type: Array, default: () => [] },
   progressPercent: { type: Number, default: 0 },
@@ -44,6 +45,9 @@ const canGenerateFromRanking = computed(
   () => props.hasLeagueSchedule && props.isLeagueComplete && !props.hasPlayoffSchedule,
 );
 const playoffExportRef = ref(null);
+const basicInfoModalOpen = ref(false);
+const draftPlayoffVenueNames = ref([]);
+const draftManualPlayoffNames = ref([]);
 
 const qualifiedTeams = computed(() =>
   props.rankedLeagueTeams.slice(0, props.playoffAdvanceCount),
@@ -78,6 +82,32 @@ function updatePlayoffVenueName(index, value) {
   const nextNames = [...props.playoffVenueNames];
   nextNames[index] = value;
   emit('update:playoffVenueNames', nextNames);
+}
+
+function openBasicInfoModal() {
+  draftPlayoffVenueNames.value = [...props.playoffVenueNames];
+  draftManualPlayoffNames.value = [...props.manualPlayoffNames];
+  basicInfoModalOpen.value = true;
+}
+
+function updateDraftPlayoffVenueName(index, value) {
+  const nextNames = [...draftPlayoffVenueNames.value];
+  nextNames[index] = value;
+  draftPlayoffVenueNames.value = nextNames;
+}
+
+function updateDraftManualName(index, value) {
+  const nextNames = [...draftManualPlayoffNames.value];
+  nextNames[index] = value;
+  draftManualPlayoffNames.value = nextNames;
+}
+
+function saveBasicInfo() {
+  emit('update:playoffVenueNames', draftPlayoffVenueNames.value);
+  if (props.playoffSource === 'manual') {
+    emit('update:manualPlayoffNames', draftManualPlayoffNames.value);
+  }
+  basicInfoModalOpen.value = false;
 }
 
 function getStatusColor(status) {
@@ -189,6 +219,9 @@ function exportPlayoffResultImage() {
           <a-button class="tool-action-button" @click="exportPlayoffResultImage">
             <template #icon><DownloadOutlined /></template>
             导出结果
+          </a-button>
+          <a-button class="tool-action-button" @click="openBasicInfoModal">
+            修改基础信息
           </a-button>
           <PasswordConfirm
             title="清空排位赛"
@@ -453,6 +486,54 @@ function exportPlayoffResultImage() {
           <a-empty v-else description="完成冠军赛和季军赛后生成最终名次" />
         </div>
       </div>
+
+      <a-modal
+        v-model:open="basicInfoModalOpen"
+        title="修改基础信息"
+        ok-text="保存"
+        cancel-text="取消"
+        @ok="saveBasicInfo"
+      >
+        <div :class="['basic-info-modal', { 'has-manual-teams': playoffSource === 'manual' }]">
+          <div class="basic-info-section is-venue">
+            <div class="setup-editor-head">
+              <div>
+                <h3 class="setup-editor-title">场地编号</h3>
+                <p>仅修改显示名称，不重排赛程。</p>
+              </div>
+            </div>
+            <div class="venue-name-editor compact-venue-editor">
+              <label v-for="(_, index) in draftPlayoffVenueNames" :key="index" class="team-name-field">
+                <span>场地 {{ index + 1 }}</span>
+                <a-input
+                  :value="draftPlayoffVenueNames[index]"
+                  placeholder="如：6 或 A馆"
+                  @update:value="updateDraftPlayoffVenueName(index, $event)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div v-if="playoffSource === 'manual'" class="basic-info-section is-team">
+            <div class="setup-editor-head">
+              <div>
+                <h3 class="setup-editor-title">队伍名称</h3>
+                <p>仅修改手动排位队伍名称。</p>
+              </div>
+            </div>
+            <div class="manual-playoff-editor">
+              <label v-for="(_, index) in draftManualPlayoffNames" :key="index" class="team-name-field">
+                <span>{{ index + 1 }} 号种子</span>
+                <a-input
+                  :value="draftManualPlayoffNames[index]"
+                  :placeholder="`队伍 ${index + 1}`"
+                  @update:value="updateDraftManualName(index, $event)"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </a-modal>
     </a-card>
   </section>
 </template>

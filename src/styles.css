@@ -309,6 +309,44 @@ input {
   margin-top: 0;
 }
 
+.basic-info-modal {
+  display: grid;
+  gap: 14px;
+}
+
+.basic-info-modal.has-manual-teams {
+  gap: 16px;
+}
+
+.basic-info-section {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  border: 1px solid #e6edf5;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.basic-info-section.is-venue {
+  border-color: #dbeafe;
+  background: #f8fbff;
+}
+
+.basic-info-modal .setup-editor-head {
+  margin-bottom: 2px;
+}
+
+.basic-info-modal .team-editor,
+.basic-info-modal .manual-playoff-editor {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.basic-info-modal .venue-name-editor {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .setup-editor-title {
   margin: 0;
   color: #0f2f4d;
@@ -1483,6 +1521,12 @@ input {
   }
 
   .setup-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .basic-info-modal .team-editor,
+  .basic-info-modal .manual-playoff-editor,
+  .basic-info-modal .venue-name-editor {
     grid-template-columns: 1fr;
   }
 
