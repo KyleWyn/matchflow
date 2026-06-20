@@ -31,6 +31,7 @@ export function useRankingStats(source) {
       dataIndex: "rank",
       key: "rank",
       fixed: "left",
+      align: "center",
       width: 90,
     },
     {
@@ -38,18 +39,21 @@ export function useRankingStats(source) {
       dataIndex: "name",
       key: "name",
       fixed: "left",
+      align: "center",
       width: 140,
     },
     {
       title: "胜负场",
       dataIndex: "winLoss",
       key: "winLoss",
+      align: "center",
       width: 90,
     },
     {
       title: "净胜分",
       dataIndex: "diff",
       key: "diff",
+      align: "center",
       width: 90,
     },
 
@@ -57,12 +61,14 @@ export function useRankingStats(source) {
       title: team.name,
       dataIndex: team.id,
       key: team.id,
+      align: "center",
       width: 120,
     })),
     {
       title: "进度",
       dataIndex: "playedProgress",
       key: "playedProgress",
+      align: "center",
       width: 120,
     },
   ]);

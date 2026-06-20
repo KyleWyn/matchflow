@@ -166,11 +166,13 @@ const scheduleColumns = computed(() => [
     dataIndex: 'round',
     key: 'round',
     fixed: 'left',
+    align: 'center',
     width: 80,
   },
   ...props.venues.map((venue) => ({
     title: '',
     key: venue.id,
+    align: 'center',
     width: 220,
     venue,
   })),
@@ -261,13 +263,6 @@ function getActualOrderText(match) {
   return actualIndex ? `现场第 ${actualIndex} 场` : '';
 }
 
-function hasCellMeta(match) {
-  return Boolean(
-    (tableViewModel.value === 'plan' && isVenueChanged(match)) ||
-      shouldShowActualOrderBadge(match),
-  );
-}
-
 function getActualTimelineIndex(match) {
   const actualVenueId = match?.actualVenueId;
   return actualVenueId ? actualVenueTimeline.value[actualVenueId]?.[match.id]?.actualIndex : null;
@@ -311,22 +306,11 @@ function getCellStyle(match) {
 
   return {
     background: color.bg,
-    borderLeft: `4px solid ${color.border}`,
+    borderLeft: `3px solid ${color.border}`,
   };
 }
 
-function getVenueTagStyle(match) {
-  const color = venueColorMap.value[match.actualVenueId];
-  if (!color) return {};
-
-  return {
-    color: color.text,
-    borderColor: color.border,
-    background: 'rgba(255, 255, 255, 0.72)',
-  };
-}
-
-function getActualOrderBadgeStyle(match) {
+function getActualOrderChipStyle(match) {
   const color = venueColorMap.value[match.actualVenueId];
   if (!color) return {};
 
@@ -461,9 +445,9 @@ function exportCurrent() {
             <span
               class="venue-header-badge"
               :style="{
-                color: venueColorMap[column.key]?.text,
-                borderColor: venueColorMap[column.key]?.border,
-                background: venueColorMap[column.key]?.bg,
+                '--venue-color': venueColorMap[column.key]?.border,
+                '--venue-text': venueColorMap[column.key]?.text,
+                '--venue-bg': venueColorMap[column.key]?.bg,
               }"
             >
               {{ column.venue.name }}
@@ -483,7 +467,6 @@ function exportCurrent() {
               :class="{
                 'has-status-ribbon': getStatusRibbonText(record.matchesByVenue[column.key]),
                 'has-stage-ribbon': record.matchesByVenue[column.key].stage === 'playoff',
-                'has-cell-meta': hasCellMeta(record.matchesByVenue[column.key]),
               }"
               role="button"
               tabindex="0"
@@ -515,22 +498,14 @@ function exportCurrent() {
                   {{ record.matchesByVenue[column.key].teamB.name }}
                 </strong>
               </div>
-              <div class="schedule-cell-meta">
-                <a-tag
-                  v-if="tableViewModel === 'plan' && isVenueChanged(record.matchesByVenue[column.key])"
-                  :style="getVenueTagStyle(record.matchesByVenue[column.key])"
-                >
-                  {{ getVenueName(record.matchesByVenue[column.key].actualVenueId) }}
-                </a-tag>
-                <span
-                  v-if="shouldShowActualOrderBadge(record.matchesByVenue[column.key])"
-                  class="actual-order-badge"
-                  :style="getActualOrderBadgeStyle(record.matchesByVenue[column.key])"
-                  title="现场顺序"
-                >
-                  {{ getActualOrderIndex(record.matchesByVenue[column.key]) }}
-                </span>
-              </div>
+              <span
+                v-if="shouldShowActualOrderBadge(record.matchesByVenue[column.key])"
+                class="schedule-order-chip"
+                :style="getActualOrderChipStyle(record.matchesByVenue[column.key])"
+                title="现场顺序"
+              >
+                {{ getActualOrderIndex(record.matchesByVenue[column.key]) }}
+              </span>
             </div>
             <span v-else class="schedule-empty">-</span>
           </template>
@@ -539,19 +514,30 @@ function exportCurrent() {
 
       <a-modal
         :open="Boolean(selectedMatch)"
-        title="比赛详情"
         :footer="null"
         @update:open="($event) => { if (!$event) closeMatchDetail(); }"
       >
-        <div v-if="selectedMatch" class="match-detail-modal">
-          <div class="match-detail-title">
-            <strong>{{ getPairing(selectedMatch) }}</strong>
+        <template #title>
+          <div v-if="selectedMatch" class="match-detail-modal-title">
+            <span>比赛详情</span>
             <a-tag :color="getStatusColor(selectedMatch.status)">
               {{ getStatusText(selectedMatch) }}
             </a-tag>
-            <a-tag v-if="selectedMatch.stage === 'playoff'" color="purple">
-              {{ selectedMatch.bracketLabel }}
-            </a-tag>
+          </div>
+        </template>
+
+        <div v-if="selectedMatch" class="match-detail-modal">
+          <div class="match-detail-header">
+            <div class="match-detail-pairing">
+              <strong :title="selectedMatch.teamA.name">{{ selectedMatch.teamA.name }}</strong>
+              <span>VS</span>
+              <strong :title="selectedMatch.teamB.name">{{ selectedMatch.teamB.name }}</strong>
+            </div>
+            <div v-if="selectedMatch.stage === 'playoff'" class="match-detail-tags">
+              <a-tag color="purple">
+                {{ selectedMatch.bracketLabel }}
+              </a-tag>
+            </div>
           </div>
 
           <div class="match-detail-grid">

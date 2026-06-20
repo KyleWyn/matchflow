@@ -227,7 +227,10 @@ function exportExcel() {
                 class="played-progress-fill"
                 :style="{ width: `${getPlayedProgressPercent(record)}%` }"
               />
-              <span class="played-progress-text">{{ record.playedProgress }}</span>
+              <span class="played-progress-text">
+                <strong>{{ record.played }}</strong>
+                <span>/{{ record.totalMatches }}</span>
+              </span>
             </div>
           </template>
           <template v-else-if="['winLoss', 'diff'].includes(column.key)">
