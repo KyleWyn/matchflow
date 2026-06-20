@@ -38,6 +38,7 @@ export function useMatchScheduler() {
   const playoffAdvanceCount = ref(4);
   const manualPlayoffNames = ref(createDefaultTeamNames(4));
   const playoffSource = ref(null);
+  const retiredLeagueTeamIds = ref([]);
 
   const hasSchedule = computed(() => matches.value.length > 0);
   const leagueMatches = computed(() =>
@@ -49,7 +50,13 @@ export function useMatchScheduler() {
   const hasLeagueSchedule = computed(() => leagueMatches.value.length > 0);
   const hasPlayoffSchedule = computed(() => playoffMatches.value.length > 0);
 
-  const leagueActiveMatches = computed(() => getActiveMatches(leagueVenues.value));
+  const retiredLeagueTeamIdSet = computed(() => new Set(retiredLeagueTeamIds.value));
+  const activeLeagueMatchesForRanking = computed(() =>
+    leagueMatches.value.filter((match) => !hasRetiredLeagueTeam(match)),
+  );
+  const leagueActiveMatches = computed(() =>
+    getActiveMatches(leagueVenues.value).filter(({ match }) => !hasRetiredLeagueTeam(match)),
+  );
   const playoffActiveMatches = computed(() => getActiveMatches(playoffVenues.value));
   const activeMatches = computed(() => [
     ...leagueActiveMatches.value,
@@ -57,7 +64,7 @@ export function useMatchScheduler() {
   ]);
 
   const leagueWaitingMatches = computed(() =>
-    leagueMatches.value.filter((match) => match.status === 'pending'),
+    activeLeagueMatchesForRanking.value.filter((match) => match.status === 'pending'),
   );
   const playoffWaitingMatches = computed(() =>
     playoffMatches.value.filter((match) => match.status === 'pending'),
@@ -73,16 +80,20 @@ export function useMatchScheduler() {
   const completedLeagueMatches = computed(() =>
     leagueMatches.value.filter((match) => match.status === 'completed'),
   );
+  const completedActiveLeagueMatches = computed(() =>
+    activeLeagueMatchesForRanking.value.filter((match) => match.status === 'completed'),
+  );
   const isLeagueComplete = computed(() =>
-    leagueMatches.value.length > 0 &&
-    leagueMatches.value.every((match) => match.status === 'completed'),
+    activeLeagueMatchesForRanking.value.length > 0 &&
+    activeLeagueMatchesForRanking.value.every((match) => match.status === 'completed'),
   );
   const rankedLeagueTeams = computed(() => {
-    const rows = createTeamStats(leagueTeamNames.value, completedLeagueMatches.value);
+    const rows = createTeamStats(leagueTeamNames.value, completedActiveLeagueMatches.value)
+      .filter((team) => !retiredLeagueTeamIdSet.value.has(team.id));
     return withRanks(
-      sortTeamRows(rows, 'wins-diff-head-to-head', leagueMatches.value),
+      sortTeamRows(rows, 'wins-diff-head-to-head', activeLeagueMatchesForRanking.value),
       'wins-diff-head-to-head',
-      leagueMatches.value,
+      activeLeagueMatchesForRanking.value,
     );
   });
   const playoffFinalStandings = computed(() => getPlayoffFinalStandings());
@@ -98,7 +109,7 @@ export function useMatchScheduler() {
     if (!matches.value.length) return 0;
     return Math.round((completedMatches.value.length / matches.value.length) * 100);
   });
-  const leagueProgressPercent = computed(() => getStageProgressPercent(leagueMatches.value));
+  const leagueProgressPercent = computed(() => getStageProgressPercent(activeLeagueMatchesForRanking.value));
   const playoffProgressPercent = computed(() => getStageProgressPercent(playoffMatches.value));
 
   const summary = computed(() => [
@@ -109,7 +120,7 @@ export function useMatchScheduler() {
   ]);
 
   const leagueSummary = computed(() => createStageSummary(
-    leagueMatches.value,
+    activeLeagueMatchesForRanking.value,
     leagueActiveMatches.value,
     leagueWaitingMatches.value,
   ));
@@ -121,7 +132,7 @@ export function useMatchScheduler() {
   ));
 
   const leagueVenueRecommendations = computed(() =>
-    createVenueRecommendations('league', leagueMatches.value, leagueVenues.value),
+    createVenueRecommendations('league', activeLeagueMatchesForRanking.value, leagueVenues.value),
   );
 
   const playoffVenueRecommendations = computed(() =>
@@ -264,7 +275,7 @@ export function useMatchScheduler() {
     const match = getRecommendationStore(stage).value[venue.id];
     if (!match || venue.currentMatchId) return false;
 
-    const stageMatches = stage === 'playoff' ? playoffMatches.value : leagueMatches.value;
+    const stageMatches = getSchedulableMatches(stage);
     const plannedCandidates = getPlannedVenueCandidates(stageMatches, venue.id);
     if (plannedCandidates.length <= 1) return false;
 
@@ -297,7 +308,7 @@ export function useMatchScheduler() {
   }
 
   function isAllPlannedCandidatesSkipped(stage, venueId, skippedMatchIds) {
-    const stageMatches = stage === 'playoff' ? playoffMatches.value : leagueMatches.value;
+    const stageMatches = getSchedulableMatches(stage);
     const plannedCandidates = getPlannedVenueCandidates(stageMatches, venueId);
 
     return (
@@ -320,7 +331,7 @@ export function useMatchScheduler() {
   function dynamicallyAllocateVenue(venue, stage = 'league') {
     if (venue.currentMatchId) return false;
 
-    const stageMatches = stage === 'playoff' ? playoffMatches.value : leagueMatches.value;
+    const stageMatches = getSchedulableMatches(stage);
     const stageVenues = getVenueStore(stage).value;
     const currentRecommendation = getRecommendationStore(stage).value[venue.id] ?? null;
     const skippedMatchIds = skippedMatchIdsByVenue.value[stage]?.[venue.id] ?? [];
@@ -348,6 +359,10 @@ export function useMatchScheduler() {
     return true;
   }
 
+  function getSchedulableMatches(stage) {
+    return stage === 'playoff' ? playoffMatches.value : activeLeagueMatchesForRanking.value;
+  }
+
   function clearDynamicMatch(venueId, stage = 'league') {
     if (!dynamicMatchIdsByVenue.value[stage]?.[venueId]) return;
 
@@ -372,6 +387,7 @@ export function useMatchScheduler() {
     recentTeamsByStage.value = { ...recentTeamsByStage.value, league: [] };
     skippedMatchIdsByVenue.value = { ...skippedMatchIdsByVenue.value, league: {} };
     dynamicMatchIdsByVenue.value = { ...dynamicMatchIdsByVenue.value, league: {} };
+    retiredLeagueTeamIds.value = [];
   }
 
   function generatePlayoffFromRanking() {
@@ -599,6 +615,7 @@ export function useMatchScheduler() {
     recentTeamsByStage.value = { ...recentTeamsByStage.value, league: [] };
     skippedMatchIdsByVenue.value = { ...skippedMatchIdsByVenue.value, league: {} };
     dynamicMatchIdsByVenue.value = { ...dynamicMatchIdsByVenue.value, league: {} };
+    retiredLeagueTeamIds.value = [];
     leagueTeamNames.value = createDefaultTeamNames(leagueTeamCount.value);
     leagueVenueNames.value = createDefaultVenueNames(leagueVenueCount.value);
     restoredFromStorage.value = false;
@@ -645,6 +662,20 @@ export function useMatchScheduler() {
     });
   }
 
+  function hasRetiredLeagueTeam(match) {
+    return (
+      retiredLeagueTeamIdSet.value.has(match?.teamA?.id) ||
+      retiredLeagueTeamIdSet.value.has(match?.teamB?.id)
+    );
+  }
+
+  function normalizeRetiredLeagueTeamIds(value) {
+    if (!Array.isArray(value)) return [];
+
+    const leagueTeamIds = new Set(createTeams(leagueTeamNames.value).map((team) => team.id));
+    return [...new Set(value.filter((teamId) => leagueTeamIds.has(teamId)))];
+  }
+
   function updateMatchTeamName(match, side, teamNameMap) {
     const team = match[side];
     if (!team || team.placeholder || !teamNameMap[team.id]) return;
@@ -682,6 +713,7 @@ export function useMatchScheduler() {
         playoffAdvanceCount: playoffAdvanceCount.value,
         manualPlayoffNames: manualPlayoffNames.value,
         playoffSource: playoffSource.value,
+        retiredLeagueTeamIds: retiredLeagueTeamIds.value,
       }),
     );
   }
@@ -729,6 +761,7 @@ export function useMatchScheduler() {
         ? normalizeTeamNames(4, state.manualPlayoffNames)
         : createDefaultTeamNames(4);
       playoffSource.value = state.playoffSource ?? inferPlayoffSource();
+      retiredLeagueTeamIds.value = normalizeRetiredLeagueTeamIds(state.retiredLeagueTeamIds);
       restoredFromStorage.value = matches.value.length > 0;
     } catch {
       localStorage.removeItem(STORAGE_KEY);
@@ -835,6 +868,7 @@ export function useMatchScheduler() {
       playoffAdvanceCount: playoffAdvanceCount.value,
       manualPlayoffNames: manualPlayoffNames.value,
       playoffSource: playoffSource.value,
+      retiredLeagueTeamIds: retiredLeagueTeamIds.value,
     }),
     saveState,
     { deep: true },
@@ -849,6 +883,7 @@ export function useMatchScheduler() {
   watch(leagueTeamNames, (names) => {
     if (hasLeagueSchedule.value) {
       syncLeagueTeamNames(names);
+      retiredLeagueTeamIds.value = normalizeRetiredLeagueTeamIds(retiredLeagueTeamIds.value);
     }
   }, { deep: true });
 
@@ -918,6 +953,7 @@ export function useMatchScheduler() {
     rankedLeagueTeams,
     playoffAdvanceCount,
     playoffSource,
+    retiredLeagueTeamIds,
     playoffFinalStandings,
     arrangeRecommendedMatch,
     undoVenueMatch,

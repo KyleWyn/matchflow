@@ -205,6 +205,7 @@ function validateMatchflowState(value) {
     !isOptionalStringArray(value.leagueVenueNames) ||
     !isOptionalStringArray(value.playoffVenueNames) ||
     !isOptionalStringArray(value.manualPlayoffNames) ||
+    !isOptionalStringArray(value.retiredLeagueTeamIds) ||
     !isIdListMap(value.skippedMatchIdsByVenue) ||
     !isIdMap(value.dynamicMatchIdsByVenue)
   ) {

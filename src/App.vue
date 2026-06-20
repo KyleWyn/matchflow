@@ -62,6 +62,7 @@ const {
   rankedLeagueTeams,
   playoffAdvanceCount,
   playoffSource,
+  retiredLeagueTeamIds,
   playoffFinalStandings,
   arrangeRecommendedMatch,
   undoVenueMatch,
@@ -179,6 +180,7 @@ function confirmCompletedScoreEdit() {
               v-model:venue-count="leagueVenueCount"
               v-model:team-names="leagueTeamNames"
               v-model:venue-names="leagueVenueNames"
+              v-model:retired-team-ids="retiredLeagueTeamIds"
               :has-schedule="hasLeagueSchedule"
               :summary="leagueSummary"
               :progress-percent="leagueProgressPercent"
@@ -205,10 +207,12 @@ function confirmCompletedScoreEdit() {
                 title="单循环总赛程表"
                 :matches="leagueMatches"
                 :venues="leagueVenues"
+                :retired-team-ids="retiredLeagueTeamIds"
               />
 
               <RankingStats
                 v-model:ranking-sort="rankingSort"
+                :retired-team-ids="retiredLeagueTeamIds"
                 :team-names="leagueTeamNames"
                 :matches="leagueMatches"
                 :completed-matches="completedLeagueMatches"

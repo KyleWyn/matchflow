@@ -9,6 +9,7 @@ const props = defineProps({
   matches: { type: Array, required: true },
   venues: { type: Array, required: true },
   tableView: { type: String, default: 'plan' },
+  retiredTeamIds: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:tableView']);
@@ -23,6 +24,7 @@ const tableViewOptions = [
   { label: '现场表', value: 'actual' },
 ];
 const selectedMatch = ref(null);
+const retiredTeamIdSet = computed(() => new Set(props.retiredTeamIds));
 
 const venuePalette = [
   { bg: '#fff7e8', border: '#d48806', text: '#8a5a00' },
@@ -190,10 +192,19 @@ function getStatusColor(status) {
 }
 
 function getStatusText(match) {
+  if (hasRetiredTeam(match)) return match.status === 'completed' ? '已退赛，不计成绩' : '退赛不计';
   if (match.status === 'completed') return '已完成';
   if (match.status === 'playing') return '进行中';
   if (match.status === 'locked') return '待定';
   return '未开始';
+}
+
+function isRetiredTeam(team) {
+  return retiredTeamIdSet.value.has(team?.id);
+}
+
+function hasRetiredTeam(match) {
+  return isRetiredTeam(match?.teamA) || isRetiredTeam(match?.teamB);
 }
 
 function getStatusRibbonText(match) {
@@ -299,6 +310,10 @@ function closeMatchDetail() {
 }
 
 function getCellStyle(match) {
+  if (hasRetiredTeam(match)) {
+    return {};
+  }
+
   if (props.tableView !== 'plan' || !match || !isVenueChanged(match)) return {};
 
   const color = venueColorMap.value[match.actualVenueId];
@@ -467,6 +482,7 @@ function exportCurrent() {
               :class="{
                 'has-status-ribbon': getStatusRibbonText(record.matchesByVenue[column.key]),
                 'has-stage-ribbon': record.matchesByVenue[column.key].stage === 'playoff',
+                'is-retired-match': hasRetiredTeam(record.matchesByVenue[column.key]),
               }"
               role="button"
               tabindex="0"
@@ -490,14 +506,26 @@ function exportCurrent() {
                 {{ record.matchesByVenue[column.key].bracketLabel }}
               </span>
               <div class="schedule-matchup">
-                <strong class="schedule-team-name" :title="record.matchesByVenue[column.key].teamA.name">
+                <strong
+                  :class="['schedule-team-name', { 'is-retired-team': isRetiredTeam(record.matchesByVenue[column.key].teamA) }]"
+                  :title="record.matchesByVenue[column.key].teamA.name"
+                >
                   {{ record.matchesByVenue[column.key].teamA.name }}
                 </strong>
                 <span class="schedule-vs" aria-label="对阵">VS</span>
-                <strong class="schedule-team-name" :title="record.matchesByVenue[column.key].teamB.name">
+                <strong
+                  :class="['schedule-team-name', { 'is-retired-team': isRetiredTeam(record.matchesByVenue[column.key].teamB) }]"
+                  :title="record.matchesByVenue[column.key].teamB.name"
+                >
                   {{ record.matchesByVenue[column.key].teamB.name }}
                 </strong>
               </div>
+              <span
+                v-if="hasRetiredTeam(record.matchesByVenue[column.key])"
+                class="schedule-retired-mark"
+              >
+                不计
+              </span>
               <span
                 v-if="shouldShowActualOrderBadge(record.matchesByVenue[column.key])"
                 class="schedule-order-chip"

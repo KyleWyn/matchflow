@@ -12,18 +12,44 @@ export function useRankingStats(source) {
   const teamNames = computed(() => unref(source.teamNames));
   const matches = computed(() => unref(source.matches));
   const completedMatches = computed(() => unref(source.completedMatches));
-
-  const teamStatsRows = computed(() =>
-    createTeamStats(teamNames.value, completedMatches.value),
+  const retiredTeamIds = computed(() => unref(source.retiredTeamIds) ?? []);
+  const retiredTeamIdSet = computed(() => new Set(retiredTeamIds.value));
+  const activeMatches = computed(() =>
+    matches.value.filter((match) => !hasRetiredTeamInMatch(match)),
+  );
+  const activeCompletedMatches = computed(() =>
+    completedMatches.value.filter((match) => !hasRetiredTeamInMatch(match)),
+  );
+  const activeTeamCount = computed(() =>
+    Math.max(0, teamNames.value.length - retiredTeamIdSet.value.size),
+  );
+  const originalStatsByTeamId = computed(() =>
+    createTeamStats(teamNames.value, completedMatches.value).reduce((rows, team) => {
+      rows[team.id] = team;
+      return rows;
+    }, {}),
   );
 
-  const matrixTeams = computed(() =>
-    withRanks(
-      sortTeamRows(teamStatsRows.value, rankingSort.value, matches.value),
-      rankingSort.value,
-      matches.value,
-    ),
-  );
+  const teamStatsRows = computed(() => {
+    const rows = createTeamStats(teamNames.value, activeCompletedMatches.value).map((team) => ({
+      ...team,
+      retired: retiredTeamIdSet.value.has(team.id),
+    }));
+
+    const activeRows = rows.filter((team) => !team.retired);
+    const retiredRows = rows.filter((team) => team.retired);
+
+    return [
+      ...withRanks(
+        sortTeamRows(activeRows, rankingSort.value, activeMatches.value),
+        rankingSort.value,
+        activeMatches.value,
+      ),
+      ...retiredRows.map((team) => ({ ...team, rank: '退赛' })),
+    ];
+  });
+
+  const matrixTeams = computed(() => teamStatsRows.value);
 
   const matrixColumns = computed(() => [
     {
@@ -74,32 +100,79 @@ export function useRankingStats(source) {
   ]);
 
   const matrixRows = computed(() =>
-    matrixTeams.value.map((team) => ({
-      id: team.id,
-      name: team.name,
-      rank: team.rank,
-      winLoss: `${team.wins}-${team.losses}`,
-      played: team.played,
-      totalMatches: Math.max(0, teamNames.value.length - 1),
-      playedProgress: `${team.played}/${Math.max(0, teamNames.value.length - 1)}`,
-      diff: team.diff,
-    })),
+    matrixTeams.value.map((team) => {
+      const originalStats = originalStatsByTeamId.value[team.id] ?? team;
+
+      return {
+        id: team.id,
+        name: team.name,
+        rank: team.rank,
+        retired: team.retired,
+        winLoss: `${originalStats.wins}-${originalStats.losses}`,
+        played: team.played,
+        totalMatches: team.retired ? 0 : Math.max(0, activeTeamCount.value - 1),
+        playedProgress: team.retired
+          ? '退赛'
+          : `${team.played}/${Math.max(0, activeTeamCount.value - 1)}`,
+        diff: originalStats.diff,
+      };
+    }),
   );
 
   function getRankClass(record) {
+    if (record.retired) return "rank-row-retired";
     if (![1, 2, 3].includes(record.rank)) return "";
     return `rank-row-${record.rank}`;
   }
 
   function getMatrixCell(rowTeamId, columnTeamId) {
-    return getMatrixCellData(matches.value, rowTeamId, columnTeamId);
+    if (rowTeamId === columnTeamId) return { text: "-", tone: "muted" };
+
+    if (isRetiredTeam(rowTeamId) || isRetiredTeam(columnTeamId)) {
+      const match = matches.value.find(
+        (item) =>
+          (item.teamA.id === rowTeamId && item.teamB.id === columnTeamId) ||
+          (item.teamA.id === columnTeamId && item.teamB.id === rowTeamId),
+      );
+
+      if (!match) return { text: "-", tone: "retired-pending", retired: true };
+
+      if (
+        match.status === "completed" &&
+        Number.isFinite(match.scoreA) &&
+        Number.isFinite(match.scoreB)
+      ) {
+        const rowScore = match.teamA.id === rowTeamId ? match.scoreA : match.scoreB;
+        const columnScore = match.teamA.id === rowTeamId ? match.scoreB : match.scoreA;
+        return {
+          text: `${rowScore}:${columnScore}`,
+          tone: "retired-played",
+          retired: true,
+        };
+      }
+
+      return { text: "不计", tone: "retired-pending", retired: true };
+    }
+
+    return getMatrixCellData(activeMatches.value, rowTeamId, columnTeamId);
+  }
+
+  function isRetiredTeam(teamId) {
+    return retiredTeamIdSet.value.has(teamId);
+  }
+
+  function hasRetiredTeamInMatch(match) {
+    return isRetiredTeam(match?.teamA?.id) || isRetiredTeam(match?.teamB?.id);
   }
 
   return {
     rankingSort,
+    activeMatches,
+    activeCompletedMatches,
     matrixColumns,
     matrixRows,
     getRankClass,
     getMatrixCell,
+    isRetiredTeam,
   };
 }

@@ -11,6 +11,7 @@ const props = defineProps({
   matches: { type: Array, required: true },
   completedMatches: { type: Array, required: true },
   rankingSort: { type: String, default: 'original' },
+  retiredTeamIds: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['edit-score', 'update:rankingSort']);
@@ -23,9 +24,17 @@ const rankingExportRef = ref(null);
 const teamNamesSource = computed(() => props.teamNames);
 const matchesSource = computed(() => props.matches);
 const completedMatchesSource = computed(() => props.completedMatches);
-const isRankingFinalized = computed(
-  () => props.matches.length > 0 && props.completedMatches.length === props.matches.length,
+const retiredTeamIdsSource = computed(() => props.retiredTeamIds);
+const activeMatches = computed(() =>
+  props.matches.filter((match) => !hasRetiredTeam(match)),
 );
+const activeCompletedMatches = computed(() =>
+  activeMatches.value.filter((match) => match.status === 'completed'),
+);
+const isRankingFinalized = computed(
+  () => activeMatches.value.length > 0 && activeCompletedMatches.value.length === activeMatches.value.length,
+);
+const retiredTeamIdSet = computed(() => new Set(props.retiredTeamIds));
 
 const {
   matrixColumns,
@@ -37,6 +46,7 @@ const {
   matches: matchesSource,
   completedMatches: completedMatchesSource,
   rankingSort: rankingSortModel,
+  retiredTeamIds: retiredTeamIdsSource,
 });
 
 const exportColumns = computed(() =>
@@ -48,6 +58,7 @@ function shouldShowRankDecorations(rank) {
 }
 
 function getDisplayRankClass(record) {
+  if (record.retired) return getRankClass(record);
   if (!isRankingFinalized.value || rankingSortModel.value === 'original') return '';
   return getRankClass(record);
 }
@@ -70,8 +81,16 @@ function getMatrixMatch(teamId, opponentId) {
   ) ?? null;
 }
 
+function hasRetiredTeam(match) {
+  return (
+    retiredTeamIdSet.value.has(match?.teamA?.id) ||
+    retiredTeamIdSet.value.has(match?.teamB?.id)
+  );
+}
+
 function canEditCell(record, column) {
   if (['rank', 'name', 'winLoss', 'playedProgress', 'diff'].includes(column.key)) return false;
+  if (record.retired || retiredTeamIdSet.value.has(column.key)) return false;
 
   const match = getMatrixMatch(record.id, column.key);
   return ['pending', 'playing', 'completed'].includes(match?.status);
@@ -207,16 +226,21 @@ function exportExcel() {
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'rank'">
-            <span :class="['rank-badge', `rank-badge-${record.rank}`]">
+            <span :class="['rank-badge', record.retired ? 'rank-badge-retired' : `rank-badge-${record.rank}`]">
               <TrophyOutlined v-if="shouldShowRankDecorations(record.rank)" />
               {{ record.rank }}
             </span>
           </template>
           <template v-if="column.key === 'name'">
-            <strong>{{ record.name }}</strong>
+            <span :class="['ranking-team-name', { 'is-retired': record.retired }]">
+              <strong>{{ record.name }}</strong>
+              <span v-if="record.retired" class="ranking-retired-tag">退赛</span>
+            </span>
           </template>
           <template v-else-if="column.key === 'playedProgress'">
+            <span v-if="record.retired" class="played-progress-retired">不计</span>
             <div
+              v-else
               :class="[
                 'played-progress-bar',
                 { 'is-complete': record.totalMatches > 0 && record.played === record.totalMatches },
@@ -256,6 +280,7 @@ function exportExcel() {
           </template>
         </template>
       </a-table>
+
     </a-card>
   </section>
 </template>

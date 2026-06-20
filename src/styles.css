@@ -203,6 +203,52 @@ input {
   margin-inline-end: 0;
 }
 
+.config-generated-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.config-generated-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.config-meta-pill {
+  min-height: 36px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  background: #ffffff;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.config-meta-pill strong {
+  color: #0f2f4d;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.config-generated-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .tool-action-button.ant-btn {
   min-width: 112px;
   height: 36px;
@@ -989,6 +1035,20 @@ input {
   transform: translateY(1px);
 }
 
+.schedule-cell.is-retired-match {
+  border-color: #d7dee8;
+  border-style: dashed;
+  background:
+    linear-gradient(135deg, rgba(148, 163, 184, 0.1), rgba(248, 250, 252, 0) 42%),
+    #f8fafc;
+}
+
+.schedule-cell.is-retired-match:hover,
+.schedule-cell.is-retired-match:focus-visible {
+  border-color: #b7c2d0;
+  box-shadow: 0 4px 14px rgba(100, 116, 139, 0.12);
+}
+
 .schedule-matchup {
   position: absolute;
   inset: 12px 18px 10px;
@@ -1021,6 +1081,13 @@ input {
 
 .schedule-team-name:last-child {
   text-align: left;
+}
+
+.schedule-team-name.is-retired-team {
+  color: #7c8796;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgba(100, 116, 139, 0.55);
 }
 
 .schedule-vs {
@@ -1127,6 +1194,25 @@ input {
   border: 1px solid;
   border-radius: 999px;
   box-shadow: 0 2px 8px rgba(15, 47, 77, 0.08);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.schedule-retired-mark {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 1;
+  height: 20px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: #64748b;
+  background: #eef2f7;
   font-size: 12px;
   line-height: 1;
   font-weight: 800;
@@ -1291,6 +1377,11 @@ input {
   background: #fff0e0 !important;
 }
 
+.rank-row-retired > td {
+  background: #f8fafc !important;
+  color: #7c8796;
+}
+
 .ranking-tools {
   display: flex;
   align-items: center;
@@ -1301,6 +1392,43 @@ input {
 
 .matrix-sort {
   width: 210px;
+}
+
+.ranking-team-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.ranking-team-name.is-retired strong {
+  color: #7c8796;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgba(100, 116, 139, 0.55);
+}
+
+.ranking-retired-tag,
+.played-progress-retired {
+  height: 22px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #64748b;
+  background: #eef2f7;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.rank-badge-retired {
+  min-width: 50px;
+  color: #64748b;
+  background: #eef2f7;
 }
 
 .matrix-table .ant-table-cell {
@@ -1420,6 +1548,72 @@ input {
   color: #8c2f2f;
   background: #fdecec;
   font-weight: 700;
+}
+
+.matrix-cell-retired-played {
+  color: #64748b;
+  background: #eef2f7;
+  font-weight: 700;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgba(100, 116, 139, 0.55);
+}
+
+.matrix-cell-retired-pending {
+  color: #7c8796;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.retire-manager {
+  display: grid;
+  gap: 12px;
+}
+
+.retire-manager p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.retire-team-list {
+  display: grid;
+  gap: 8px;
+}
+
+.retire-team-item {
+  min-height: 42px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #e6edf5;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.retire-team-item span {
+  min-width: 0;
+  color: #0f2f4d;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retire-team-item.is-retired {
+  border-style: dashed;
+  background: #f8fafc;
+}
+
+.retire-team-item.is-retired span {
+  color: #7c8796;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgba(100, 116, 139, 0.55);
 }
 
 .empty-state {
@@ -1709,6 +1903,28 @@ input {
 
   .config-summary-item {
     margin-left: 0;
+  }
+
+  .config-generated-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .config-generated-meta {
+    width: 100%;
+  }
+
+  .config-generated-meta .summary-inline {
+    flex: 1 1 100%;
+  }
+
+  .config-generated-actions {
+    justify-content: flex-start;
+  }
+
+  .config-generated-actions .tool-action-button.ant-btn {
+    flex: 1 1 150px;
   }
 
   .ranking-tools {

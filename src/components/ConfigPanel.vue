@@ -1,15 +1,17 @@
 <script setup>
 // 赛程配置面板：管理队伍/场地配置；生成后仍允许修改显示名称。
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons-vue';
 import PasswordConfirm from './PasswordConfirm.vue';
 import SummaryGrid from './SummaryGrid.vue';
+import { createTeams } from '../utils/schedule';
 
 const props = defineProps({
   teamCount: { type: Number, required: true },
   venueCount: { type: Number, required: true },
   teamNames: { type: Array, required: true },
   venueNames: { type: Array, required: true },
+  retiredTeamIds: { type: Array, default: () => [] },
   hasSchedule: { type: Boolean, required: true },
   summary: { type: Array, default: () => [] },
   progressPercent: { type: Number, default: 0 },
@@ -20,13 +22,18 @@ const emit = defineEmits([
   'update:venueCount',
   'update:teamNames',
   'update:venueNames',
+  'update:retiredTeamIds',
   'generate',
   'reset',
 ]);
 
 const basicInfoModalOpen = ref(false);
+const retireModalOpen = ref(false);
 const draftTeamNames = ref([]);
 const draftVenueNames = ref([]);
+const draftRetiredTeamIds = ref([]);
+const retireTeams = computed(() => createTeams(props.teamNames));
+const draftRetiredTeamIdSet = computed(() => new Set(draftRetiredTeamIds.value));
 
 function updateTeamName(index, value) {
   // 队名数组由父级持有，这里通过复制后 emit 避免直接修改 props。
@@ -64,18 +71,41 @@ function saveBasicInfo() {
   emit('update:venueNames', draftVenueNames.value);
   basicInfoModalOpen.value = false;
 }
+
+function openRetireModal() {
+  draftRetiredTeamIds.value = [...props.retiredTeamIds];
+  retireModalOpen.value = true;
+}
+
+function closeRetireModal() {
+  retireModalOpen.value = false;
+}
+
+function toggleDraftRetiredTeam(teamId, checked) {
+  const nextIds = new Set(draftRetiredTeamIds.value);
+  if (checked) {
+    nextIds.add(teamId);
+  } else {
+    nextIds.delete(teamId);
+  }
+  draftRetiredTeamIds.value = [...nextIds];
+}
+
+function saveRetiredTeams() {
+  emit('update:retiredTeamIds', draftRetiredTeamIds.value);
+  closeRetireModal();
+}
 </script>
 
 <template>
   <section class="control-band">
     <a-card class="control-card" :bordered="false">
-      <a-form layout="inline" class="config-form">
+      <a-form v-if="!hasSchedule" layout="inline" class="config-form">
         <a-form-item label="队伍数">
           <a-input-number
             :value="teamCount"
             :min="2"
             :max="32"
-            :disabled="hasSchedule"
             @update:value="emit('update:teamCount', $event)"
           />
         </a-form-item>
@@ -84,7 +114,6 @@ function saveBasicInfo() {
             :value="venueCount"
             :min="1"
             :max="12"
-            :disabled="hasSchedule"
             @update:value="emit('update:venueCount', $event)"
           />
         </a-form-item>
@@ -92,22 +121,33 @@ function saveBasicInfo() {
           <a-button
             type="primary"
             class="tool-action-button"
-            :disabled="hasSchedule"
             @click="emit('generate')"
           >
             <template #icon><PlayCircleOutlined /></template>
-            {{ hasSchedule ? '赛程已生成' : '生成赛程' }}
+            生成赛程
           </a-button>
         </a-form-item>
-        <a-form-item v-if="hasSchedule" class="config-summary-item">
+      </a-form>
+
+      <div v-else class="config-generated-row">
+        <div class="config-generated-meta">
+          <span class="config-meta-pill">
+            <span>队伍数</span>
+            <strong>{{ teamCount }}</strong>
+          </span>
+          <span class="config-meta-pill">
+            <span>场地数</span>
+            <strong>{{ venueCount }}</strong>
+          </span>
           <SummaryGrid :summary="summary" :progress-percent="progressPercent" />
-        </a-form-item>
-        <a-form-item v-if="hasSchedule">
+        </div>
+        <div class="config-generated-actions">
           <a-button class="tool-action-button" @click="openBasicInfoModal">
             修改基础信息
           </a-button>
-        </a-form-item>
-        <a-form-item>
+          <a-button class="tool-action-button" @click="openRetireModal">
+            退赛管理
+          </a-button>
           <PasswordConfirm
             title="清空积分赛程"
             description="此操作会清空积分赛程和已录入进度。"
@@ -119,8 +159,8 @@ function saveBasicInfo() {
               清空赛程
             </a-button>
           </PasswordConfirm>
-        </a-form-item>
-      </a-form>
+        </div>
+      </div>
 
       <template v-if="!hasSchedule">
         <a-divider />
@@ -206,6 +246,35 @@ function saveBasicInfo() {
                 />
               </label>
             </div>
+          </div>
+        </div>
+      </a-modal>
+
+      <a-modal
+        :open="retireModalOpen"
+        title="退赛管理"
+        ok-text="保存"
+        cancel-text="取消"
+        @ok="saveRetiredTeams"
+        @cancel="closeRetireModal"
+        @update:open="($event) => { if (!$event) closeRetireModal(); }"
+      >
+        <div class="retire-manager">
+          <p>退赛队伍的循环赛成绩会保留，但不计入排名。</p>
+          <div class="retire-team-list">
+            <label
+              v-for="team in retireTeams"
+              :key="team.id"
+              :class="['retire-team-item', { 'is-retired': draftRetiredTeamIdSet.has(team.id) }]"
+            >
+              <span>{{ team.name }}</span>
+              <a-switch
+                :checked="draftRetiredTeamIdSet.has(team.id)"
+                checked-children="退赛"
+                un-checked-children="正常"
+                @change="(checked) => toggleDraftRetiredTeam(team.id, checked)"
+              />
+            </label>
           </div>
         </div>
       </a-modal>
