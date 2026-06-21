@@ -648,20 +648,29 @@ input {
 }
 
 .venue-vs {
-  min-width: 34px;
-  height: 24px;
-  padding: 0 7px;
+  min-width: 48px;
+  height: 22px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #dbeafe;
-  border-radius: 999px;
-  color: #2563eb;
-  background: #eff6ff;
-  font-size: 11px;
+  gap: 6px;
+  border: 0;
+  color: #486581;
+  background: transparent;
+  font-size: 12px;
   line-height: 1;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+.venue-vs::before,
+.venue-vs::after {
+  content: "";
+  width: 5px;
+  height: 1px;
+  border-radius: 999px;
+  background: #cbd8e6;
 }
 
 .venue-actions {
@@ -1859,9 +1868,15 @@ input {
   }
 
   .venue-vs {
-    min-width: 30px;
-    height: 22px;
-    padding: 0 6px;
+    min-width: 42px;
+    height: 20px;
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .venue-vs::before,
+  .venue-vs::after {
+    width: 4px;
   }
 
   .schedule-cell {
