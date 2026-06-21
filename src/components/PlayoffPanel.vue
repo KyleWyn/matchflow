@@ -28,6 +28,7 @@ const props = defineProps({
   finalStandings: { type: Array, required: true },
   summary: { type: Array, default: () => [] },
   progressPercent: { type: Number, default: 0 },
+  showTools: { type: Boolean, default: true },
 });
 
 const emit = defineEmits([
@@ -215,25 +216,27 @@ function exportPlayoffResultImage() {
       </template>
       <template v-if="hasPlayoffSchedule" #extra>
         <div class="card-head-tools">
-          <SummaryGrid :summary="summary" :progress-percent="progressPercent" />
           <a-button class="tool-action-button" @click="exportPlayoffResultImage">
             <template #icon><DownloadOutlined /></template>
             导出结果
           </a-button>
-          <a-button class="tool-action-button" @click="openBasicInfoModal">
-            修改基础信息
-          </a-button>
-          <PasswordConfirm
-            title="清空排位赛"
-            description="此操作会清空排位赛程和已录入进度。"
-            ok-text="清空排位"
-            @confirm="emit('reset')"
-          >
-            <a-button danger class="tool-action-button">
-              <template #icon><DeleteOutlined /></template>
-              清空排位
+          <template v-if="showTools">
+            <SummaryGrid :summary="summary" :progress-percent="progressPercent" />
+            <a-button class="tool-action-button" @click="openBasicInfoModal">
+              修改基础信息
             </a-button>
-          </PasswordConfirm>
+            <PasswordConfirm
+              title="清空排位赛"
+              description="此操作会清空排位赛程和已录入进度。"
+              ok-text="清空排位"
+              @confirm="emit('reset')"
+            >
+              <a-button danger class="tool-action-button">
+                <template #icon><DeleteOutlined /></template>
+                清空排位
+              </a-button>
+            </PasswordConfirm>
+          </template>
         </div>
       </template>
 

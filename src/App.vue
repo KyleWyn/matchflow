@@ -7,6 +7,7 @@ import ConfigPanel from './components/ConfigPanel.vue';
 import DataPorter from './components/DataPorter.vue';
 import MatchTables from './components/MatchTables.vue';
 import PasswordConfirm from './components/PasswordConfirm.vue';
+import PlayoffControlPanel from './components/PlayoffControlPanel.vue';
 import PlayoffPanel from './components/PlayoffPanel.vue';
 import RankingStats from './components/RankingStats.vue';
 import ScoreModal from './components/ScoreModal.vue';
@@ -225,6 +226,7 @@ function confirmCompletedScoreEdit() {
 
           <a-tab-pane key="playoff" tab="排位赛">
             <PlayoffPanel
+              v-if="!hasPlayoffSchedule"
               v-model:playoff-venue-count="playoffVenueCount"
               v-model:playoff-venue-names="playoffVenueNames"
               v-model:playoff-advance-count="playoffAdvanceCount"
@@ -245,6 +247,16 @@ function confirmCompletedScoreEdit() {
             />
 
             <template v-if="hasPlayoffSchedule">
+              <PlayoffControlPanel
+                v-model:playoff-venue-names="playoffVenueNames"
+                v-model:manual-playoff-names="manualPlayoffNames"
+                :playoff-venue-count="playoffVenueCount"
+                :playoff-source="playoffSource"
+                :summary="playoffSummary"
+                :progress-percent="playoffProgressPercent"
+                @reset="resetPlayoffProgress"
+              />
+
               <VenueGrid
                 stage="playoff"
                 :venues="playoffVenues"
@@ -263,6 +275,27 @@ function confirmCompletedScoreEdit() {
                 title="排位赛赛程表"
                 :matches="playoffMatches"
                 :venues="playoffVenues"
+              />
+
+              <PlayoffPanel
+                v-model:playoff-venue-count="playoffVenueCount"
+                v-model:playoff-venue-names="playoffVenueNames"
+                v-model:playoff-advance-count="playoffAdvanceCount"
+                v-model:manual-playoff-names="manualPlayoffNames"
+                :has-league-schedule="hasLeagueSchedule"
+                :has-playoff-schedule="hasPlayoffSchedule"
+                :is-league-complete="isLeagueComplete"
+                :playoff-matches="playoffMatches"
+                :ranked-league-teams="rankedLeagueTeams"
+                :playoff-source="playoffSource"
+                :final-standings="playoffFinalStandings"
+                :summary="playoffSummary"
+                :progress-percent="playoffProgressPercent"
+                :show-tools="false"
+                @generate-from-ranking="handleGeneratePlayoffFromRanking"
+                @generate-manual="handleGenerateManualPlayoff"
+                @reset="resetPlayoffProgress"
+                @edit-score="handleOpenMatchScoreModal"
               />
             </template>
           </a-tab-pane>
