@@ -523,18 +523,22 @@ input {
 }
 
 .venue-card .ant-card-body {
+  min-height: 302px;
   display: flex;
-  min-height: 220px;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 20px 24px 24px;
 }
 
 .match-now,
 .recommend-state {
   display: grid;
-  align-content: center;
-  gap: 12px;
+  grid-template-rows: 24px 56px 22px 16px;
+  align-content: start;
+  gap: 8px;
+  height: 142px;
+  min-height: 142px;
 }
 
 .match-now p,
@@ -619,10 +623,12 @@ input {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 10px;
+  min-height: 56px;
 }
 
 .venue-team-name {
   min-width: 0;
+  min-height: 1.32em;
   max-height: 2.64em;
   color: #0f2f4d;
   font-size: 18px;
@@ -660,11 +666,48 @@ input {
 
 .venue-actions {
   width: 100%;
+  min-height: 116px;
+}
+
+.venue-actions-single {
+  display: grid;
+  grid-template-rows: 32px 32px 32px;
+  gap: 8px;
+  align-content: start;
+}
+
+.venue-actions.ant-space {
+  display: grid;
+  grid-template-rows: 40px 32px 32px;
+  align-content: start;
+  gap: 8px;
+}
+
+.venue-actions.ant-space .ant-space-item {
+  width: 100%;
+}
+
+.venue-actions.ant-space .ant-space-item:has(.venue-action-placeholder) {
+  height: 32px;
+}
+
+.venue-action-placeholder {
+  display: block;
+  width: 100%;
+  height: 32px;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .venue-warning {
   color: #8a5a00 !important;
   font-size: 13px;
+}
+
+.venue-warning-slot {
+  min-height: 16px;
+  font-size: 13px;
+  line-height: 16px;
 }
 
 .section-title {
@@ -966,12 +1009,26 @@ input {
 }
 
 .idle-state {
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 14px;
+  height: 142px;
+  min-height: 142px;
+  padding: 14px 16px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  border: 1px dashed #d7dee8;
+  border-radius: 8px;
+  background: #f8fafc;
   text-align: center;
+}
+
+.idle-state .ant-tag {
+  margin-inline-end: 0;
+}
+
+.idle-state p {
+  color: #7c8796;
+  font-size: 14px;
 }
 
 .tables-grid {

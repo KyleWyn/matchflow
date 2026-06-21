@@ -110,6 +110,7 @@ function getStageRibbonClass(match) {
             </strong>
           </div>
           <p>开始时间：{{ formatTime(getMatchById(venue.currentMatchId).startedAt) }}</p>
+          <p class="venue-warning-slot">&nbsp;</p>
         </div>
         <a-space direction="vertical" class="venue-actions">
           <a-button block type="primary" size="large" @click="emit('open-score', venue, props.stage)">
@@ -127,6 +128,7 @@ function getStageRibbonClass(match) {
               撤回安排
             </a-button>
           </a-popconfirm>
+          <span class="venue-action-placeholder" aria-hidden="true"></span>
         </a-space>
       </template>
 
@@ -146,8 +148,13 @@ function getStageRibbonClass(match) {
             </strong>
           </div>
           <p>计划场地：{{ getVenueName(getRecommendedMatch(venue).plannedVenueId) }}</p>
-          <p v-if="hasActiveTeamConflict(getRecommendedMatch(venue))" class="venue-warning">
-            对阵队伍仍在其他场地进行中
+          <p
+            :class="[
+              'venue-warning-slot',
+              { 'venue-warning': hasActiveTeamConflict(getRecommendedMatch(venue)) },
+            ]"
+          >
+            {{ hasActiveTeamConflict(getRecommendedMatch(venue)) ? '对阵队伍仍在其他场地进行中' : '\u00A0' }}
           </p>
         </div>
         <div v-else class="idle-state">
@@ -174,10 +181,14 @@ function getStageRibbonClass(match) {
             动态调配场地
           </a-button>
         </a-space>
-        <a-button v-else block @click="emit('use-dynamic', venue, props.stage)">
-          <template #icon><SwapOutlined /></template>
-          动态调配场地
-        </a-button>
+        <div v-else class="venue-actions venue-actions-single">
+          <a-button block @click="emit('use-dynamic', venue, props.stage)">
+            <template #icon><SwapOutlined /></template>
+            动态调配场地
+          </a-button>
+          <span class="venue-action-placeholder" aria-hidden="true"></span>
+          <span class="venue-action-placeholder" aria-hidden="true"></span>
+        </div>
       </template>
       </a-card>
     </div>
