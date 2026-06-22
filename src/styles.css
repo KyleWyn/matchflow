@@ -2340,11 +2340,15 @@ input {
   }
 
   .table-tools .ant-btn .anticon {
-    font-size: 13px;
+    display: none;
   }
 
   .ranking-tools .ant-btn {
     flex: 1 1 140px;
+  }
+
+  .ranking-tools .ant-btn .anticon {
+    display: none;
   }
 
   .tables-grid .ant-table-wrapper,
