@@ -1851,7 +1851,8 @@ input {
 @media (max-width: 640px) {
   .app-shell {
     --mobile-header-height: 46px;
-    --mobile-stage-tabs-height: 42px;
+    --mobile-stage-tabs-height: 48px;
+    --mobile-section-nav-height: 52px;
   }
 
   .app-shell .app-header.ant-layout-header {
@@ -1885,7 +1886,11 @@ input {
   }
 
   .app-content {
-    padding-top: calc(var(--mobile-header-height) + var(--mobile-stage-tabs-height) + 6px);
+    padding-top: calc(var(--mobile-header-height) + 6px);
+  }
+
+  .app-shell.has-mobile-stage-nav .app-content {
+    padding-top: calc(var(--mobile-header-height) + var(--mobile-section-nav-height) + 6px);
   }
 
   .stage-tabs {
@@ -1894,13 +1899,15 @@ input {
 
   .stage-tabs > .ant-tabs-nav {
     position: fixed;
-    top: var(--mobile-header-height);
     left: 0;
     right: 0;
-    z-index: 25;
+    bottom: 0;
+    z-index: 24;
     margin: 0;
-    padding: 5px 16px 4px;
-    background: #f6f8fb;
+    padding: 7px 12px calc(9px + env(safe-area-inset-bottom));
+    border-top: 1px solid #e6ebf2;
+    background: #ffffff;
+    box-shadow: 0 -4px 18px rgba(17, 40, 72, 0.06);
   }
 
   .stage-tabs > .ant-tabs-nav::before {
@@ -1909,10 +1916,10 @@ input {
 
   .stage-tabs .ant-tabs-nav-wrap {
     padding: 0;
-    border: 1px solid #e6ebf2;
-    border-radius: 8px;
-    background: #ffffff;
-    box-shadow: 0 3px 12px rgba(17, 40, 72, 0.04);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .stage-tabs .ant-tabs-nav-list {
@@ -1922,13 +1929,13 @@ input {
   .stage-tabs .ant-tabs-tab {
     position: relative;
     flex: 1 1 0;
-    min-height: 32px;
+    min-height: 36px;
     margin: 0;
     padding: 0 10px;
     justify-content: center;
     border-radius: 0;
-    color: #64748b;
-    font-size: 14px;
+    color: #475569;
+    font-size: 13px;
   }
 
   .stage-tabs .ant-tabs-tab + .ant-tabs-tab {
@@ -1957,31 +1964,34 @@ input {
 
   .mobile-stage-switch {
     position: fixed;
+    top: var(--mobile-header-height);
     left: 0;
     right: 0;
-    bottom: 0;
-    z-index: 20;
+    z-index: 25;
     display: block;
     margin: 0;
-    padding: 7px 12px calc(9px + env(safe-area-inset-bottom));
-    border-top: 1px solid #e6ebf2;
+    padding: 6px 12px 5px;
+    border-bottom: 1px solid #e6ebf2;
     border-radius: 0;
-    background: #ffffff;
-    box-shadow: 0 -4px 18px rgba(17, 40, 72, 0.06);
+    background: #f6f8fb;
   }
 
   .mobile-stage-options {
     width: 100%;
     display: flex;
     align-items: stretch;
-    background: transparent;
+    padding: 0;
+    border: 1px solid #e6ebf2;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 3px 12px rgba(17, 40, 72, 0.04);
   }
 
   .mobile-stage-option {
     position: relative;
     flex: 1 1 0;
     min-width: 0;
-    min-height: 36px;
+    min-height: 34px;
     padding: 0 6px;
     border: 0;
     border-radius: 0;
@@ -1991,7 +2001,7 @@ input {
     cursor: pointer;
     font: inherit;
     font-size: 13px;
-    line-height: 36px;
+    line-height: 34px;
     text-align: center;
     -webkit-tap-highlight-color: transparent;
   }
@@ -2027,7 +2037,7 @@ input {
   }
 
   .stage-tabs .ant-tabs-content-holder {
-    padding-bottom: 86px;
+    padding-bottom: calc(var(--mobile-stage-tabs-height) + 28px + env(safe-area-inset-bottom));
   }
 
   .control-band,
@@ -2309,14 +2319,25 @@ input {
 
   .table-tools {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
   }
 
   .table-tools .ant-segmented {
+    grid-column: 1 / -1;
+    width: 100%;
     min-width: 0;
     padding: 2px;
     background: #f3f5f8;
+  }
+
+  .table-tools .ant-segmented-group {
+    width: 100%;
+  }
+
+  .table-tools .ant-segmented-item {
+    flex: 1 1 0;
+    text-align: center;
   }
 
   .table-tools .ant-segmented-item-label {
@@ -2336,6 +2357,8 @@ input {
     box-shadow: none;
     font-size: 13px;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
@@ -2419,6 +2442,31 @@ input {
     width: 100%;
     min-height: 72px;
     height: 72px;
+  }
+
+  .schedule-mobile-cell .schedule-matchup {
+    z-index: 2;
+  }
+
+  .schedule-mobile-cell .schedule-stage-ribbon,
+  .schedule-mobile-cell .schedule-retired-mark {
+    left: 6px;
+    top: 5px;
+    z-index: 1;
+    height: 16px;
+    max-width: 70px;
+    padding: 0 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    line-height: 16px;
+    box-shadow: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .schedule-mobile-cell .schedule-retired-mark {
+    max-width: 34px;
+    background: #eef2f7;
   }
 
   .schedule-mobile-empty {
@@ -2559,13 +2607,138 @@ input {
 
   .summary-inline {
     width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    max-width: 100%;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 0;
+    row-gap: 8px;
+    justify-content: stretch;
+    border-radius: 10px;
+    background: #f8fafc;
     white-space: normal;
+  }
+
+  .summary-inline-item,
+  .summary-inline-progress {
+    min-width: 0;
+    gap: 4px;
+    font-size: 13px;
+  }
+
+  .summary-inline-item {
+    min-height: 28px;
+    justify-content: center;
+    padding: 0 8px;
+    border-left: 1px solid #dbe3ed;
+  }
+
+  .summary-inline-item:first-child {
+    border-left: 0;
+  }
+
+  .summary-inline-item::after {
+    content: none;
+  }
+
+  .summary-inline-progress {
+    grid-column: 1 / -1;
+    min-height: 34px;
+    justify-content: flex-start;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 14px;
+  }
+
+  .summary-inline-item strong,
+  .summary-inline-progress strong {
+    font-size: 18px;
+  }
+
+  .summary-inline-progress strong {
+    font-size: 22px;
   }
 
   .match-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .retire-modal.ant-modal {
+    max-width: calc(100vw - 28px);
+    margin: 12px auto;
+  }
+
+  .retire-modal .ant-modal-content {
+    max-height: calc(100vh - 24px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    padding: 20px 16px 14px;
+    border-radius: 10px;
+  }
+
+  .retire-modal .ant-modal-close {
+    top: 14px;
+    inset-inline-end: 14px;
+  }
+
+  .retire-modal .ant-modal-header {
+    margin-bottom: 14px;
+  }
+
+  .retire-modal .ant-modal-title {
+    padding-right: 40px;
+    color: #111827;
+    font-size: 22px;
+    line-height: 1.3;
+    font-weight: 800;
+  }
+
+  .retire-modal .ant-modal-body {
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .retire-modal .ant-modal-footer {
+    margin-top: 14px;
+  }
+
+  .retire-manager {
+    gap: 14px;
+  }
+
+  .retire-manager p {
+    font-size: 15px;
+  }
+
+  .retire-team-list {
+    gap: 10px;
+  }
+
+  .retire-team-item {
+    min-width: 0;
+    min-height: 64px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .retire-team-item span {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .retire-team-item .ant-switch {
+    flex: 0 0 auto;
+    justify-self: end;
+    min-width: 58px;
   }
 
   .score-match-title {
@@ -2578,14 +2751,41 @@ input {
   }
 
   .score-editor {
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+    align-items: end;
+    gap: 8px;
+  }
+
+  .score-team {
+    grid-template-rows: 22px 44px;
+    gap: 8px;
+    min-width: 0;
   }
 
   .score-team strong {
+    min-width: 0;
     font-size: 14px;
+    line-height: 22px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .score-team .ant-input-number {
+    height: 44px;
+  }
+
+  .score-team .ant-input-number .ant-input-number-input {
+    height: 42px;
   }
 
   .score-separator {
+    width: 24px;
+    height: 44px;
+    padding-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: 20px;
   }
 
@@ -2608,11 +2808,6 @@ input {
   .match-detail-pairing span::before,
   .match-detail-pairing span::after {
     width: 5px;
-  }
-
-  .score-separator {
-    padding-bottom: 0;
-    text-align: center;
   }
 
   .manual-playoff-editor,
@@ -2666,5 +2861,44 @@ input {
 
   .matrix-sort {
     width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .mobile-stage-option,
+  .stage-tabs .ant-tabs-tab {
+    padding-inline: 4px;
+    font-size: 12px;
+  }
+
+  .table-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .table-tools .ant-segmented {
+    grid-column: auto;
+  }
+
+  .config-generated-actions > .tool-action-button.ant-btn,
+  .config-generated-actions > .password-confirm-trigger {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+
+  .summary-inline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-inline-item:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .summary-inline-progress {
+    justify-content: center;
+  }
+
+  .ranking-mobile-stats,
+  .ranking-mobile-matchups {
+    grid-template-columns: 1fr;
   }
 }

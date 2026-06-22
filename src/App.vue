@@ -1,6 +1,6 @@
 <script setup>
 // 应用组装层：只负责组织页面模块，并把核心调度状态传给各功能组件。
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import ConfigPanel from './components/ConfigPanel.vue';
@@ -91,6 +91,10 @@ const leagueMobileView = ref(normalizePreference(storedUiPreferences.leagueMobil
 const playoffMobileView = ref(normalizePreference(storedUiPreferences.playoffMobileView, playoffMobileViewValues, 'overview'));
 const scoreEditConfirmRef = ref(null);
 const pendingScoreEditMatch = ref(null);
+const hasActiveMobileStageNav = computed(() =>
+  (activeTab.value === 'league' && hasLeagueSchedule.value) ||
+  (activeTab.value === 'playoff' && hasPlayoffSchedule.value),
+);
 
 const leagueMobileViewOptions = [
   { label: '总览', value: 'overview' },
@@ -209,7 +213,7 @@ function confirmCompletedScoreEdit() {
 
 <template>
   <a-config-provider :locale="zhCN">
-    <a-layout class="app-shell">
+    <a-layout :class="['app-shell', { 'has-mobile-stage-nav': hasActiveMobileStageNav }]">
       <a-layout-header class="app-header">
         <div class="brand-block">
           <div class="eyebrow">MatchFlow</div>

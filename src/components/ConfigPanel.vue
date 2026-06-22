@@ -252,6 +252,7 @@ function saveRetiredTeams() {
 
       <a-modal
         :open="retireModalOpen"
+        class="retire-modal"
         title="退赛管理"
         ok-text="保存"
         cancel-text="取消"
