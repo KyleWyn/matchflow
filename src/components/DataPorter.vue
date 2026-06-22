@@ -12,6 +12,8 @@ const matchStatusValues = ['pending', 'playing', 'completed', 'locked'];
 const stageValues = ['league', 'playoff'];
 const tableViewValues = ['plan', 'actual'];
 const rankingSortValues = ['original', 'diff', 'wins', 'wins-diff', 'wins-diff-head-to-head'];
+const leagueMobileViewValues = ['overview', 'venue', 'schedule', 'ranking'];
+const playoffMobileViewValues = ['overview', 'venue', 'schedule', 'bracket'];
 const inputRef = ref(null);
 const importConfirmRef = ref(null);
 const exportModalOpen = ref(false);
@@ -220,7 +222,9 @@ function validateUiPreferences(value) {
     (value.activeTab !== undefined && !stageValues.includes(value.activeTab)) ||
     (value.leagueTableView !== undefined && !tableViewValues.includes(value.leagueTableView)) ||
     (value.playoffTableView !== undefined && !tableViewValues.includes(value.playoffTableView)) ||
-    (value.rankingSort !== undefined && !rankingSortValues.includes(value.rankingSort))
+    (value.rankingSort !== undefined && !rankingSortValues.includes(value.rankingSort)) ||
+    (value.leagueMobileView !== undefined && !leagueMobileViewValues.includes(value.leagueMobileView)) ||
+    (value.playoffMobileView !== undefined && !playoffMobileViewValues.includes(value.playoffMobileView))
   ) {
     throw new Error('invalid preferences fields');
   }
