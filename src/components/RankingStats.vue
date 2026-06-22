@@ -52,6 +52,10 @@ const {
 const exportColumns = computed(() =>
   matrixColumns.value.filter((column) => column.key !== 'playedProgress'),
 );
+const staticColumnKeys = ['rank', 'name', 'winLoss', 'playedProgress', 'diff'];
+const matchupColumns = computed(() =>
+  matrixColumns.value.filter((column) => !staticColumnKeys.includes(column.key)),
+);
 
 function shouldShowRankDecorations(rank) {
   return isRankingFinalized.value && rankingSortModel.value !== 'original' && [1, 2, 3].includes(rank);
@@ -89,7 +93,7 @@ function hasRetiredTeam(match) {
 }
 
 function canEditCell(record, column) {
-  if (['rank', 'name', 'winLoss', 'playedProgress', 'diff'].includes(column.key)) return false;
+  if (staticColumnKeys.includes(column.key)) return false;
   if (record.retired || retiredTeamIdSet.value.has(column.key)) return false;
 
   const match = getMatrixMatch(record.id, column.key);
@@ -141,6 +145,12 @@ function exportResultImage() {
       }
       .ranking-result-export .ranking-band {
         margin: 0;
+      }
+      .ranking-result-export .ranking-mobile-list {
+        display: none !important;
+      }
+      .ranking-result-export .ant-table-wrapper {
+        display: block !important;
       }
     `,
   });
@@ -280,6 +290,63 @@ function exportExcel() {
           </template>
         </template>
       </a-table>
+
+      <div class="ranking-mobile-list">
+        <article
+          v-for="record in matrixRows"
+          :key="record.id"
+          :class="['ranking-mobile-card', getDisplayRankClass(record)]"
+        >
+          <div class="ranking-mobile-head">
+            <span :class="['rank-badge', record.retired ? 'rank-badge-retired' : `rank-badge-${record.rank}`]">
+              <TrophyOutlined v-if="shouldShowRankDecorations(record.rank)" />
+              {{ record.rank }}
+            </span>
+            <span :class="['ranking-team-name', { 'is-retired': record.retired }]">
+              <strong>{{ record.name }}</strong>
+              <span v-if="record.retired" class="ranking-retired-tag">退赛</span>
+            </span>
+          </div>
+
+          <div class="ranking-mobile-stats">
+            <span>胜负 <strong>{{ record.winLoss }}</strong></span>
+            <span>净胜分 <strong>{{ record.diff }}</strong></span>
+            <span>
+              进度
+              <strong>{{ record.retired ? '不计' : record.playedProgress }}</strong>
+            </span>
+          </div>
+
+          <div class="ranking-mobile-matchups">
+            <template v-for="column in matchupColumns" :key="column.key">
+              <button
+                v-if="canEditCell(record, column)"
+                type="button"
+                :class="[
+                  'ranking-mobile-matchup',
+                  'ranking-mobile-matchup-action',
+                  `matrix-cell-${getMatrixCell(record.id, column.key).tone}`,
+                ]"
+                title="点击编辑比分"
+                @click="editCellScore(record, column)"
+              >
+                <span>{{ column.title }}</span>
+                <strong>{{ getMatrixCell(record.id, column.key).text }}</strong>
+              </button>
+              <span
+                v-else
+                :class="[
+                  'ranking-mobile-matchup',
+                  `matrix-cell-${getMatrixCell(record.id, column.key).tone}`,
+                ]"
+              >
+                <span>{{ column.title }}</span>
+                <strong>{{ getMatrixCell(record.id, column.key).text }}</strong>
+              </span>
+            </template>
+          </div>
+        </article>
+      </div>
 
     </a-card>
   </section>

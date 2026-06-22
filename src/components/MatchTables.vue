@@ -540,6 +540,95 @@ function exportCurrent() {
         </template>
       </a-table>
 
+      <div class="schedule-mobile-list">
+        <article
+          v-for="row in visibleScheduleRows"
+          :key="row.round"
+          class="schedule-mobile-round"
+        >
+          <h3>第 {{ row.round }} 轮</h3>
+          <div class="schedule-mobile-venues">
+            <div
+              v-for="venue in venues"
+              :key="venue.id"
+              class="schedule-mobile-venue"
+            >
+              <span
+                class="venue-header-badge"
+                :style="{
+                  '--venue-color': venueColorMap[venue.id]?.border,
+                  '--venue-text': venueColorMap[venue.id]?.text,
+                  '--venue-bg': venueColorMap[venue.id]?.bg,
+                }"
+              >
+                {{ venue.name }}
+              </span>
+
+              <div
+                v-if="row.matchesByVenue[venue.id]"
+                class="schedule-cell schedule-mobile-cell"
+                :class="{
+                  'has-status-ribbon': getStatusRibbonText(row.matchesByVenue[venue.id]),
+                  'has-stage-ribbon': row.matchesByVenue[venue.id].stage === 'playoff',
+                  'is-retired-match': hasRetiredTeam(row.matchesByVenue[venue.id]),
+                }"
+                role="button"
+                tabindex="0"
+                :style="getCellStyle(row.matchesByVenue[venue.id])"
+                @click="openMatchDetail(row.matchesByVenue[venue.id])"
+                @keydown.enter.prevent="openMatchDetail(row.matchesByVenue[venue.id])"
+                @keydown.space.prevent="openMatchDetail(row.matchesByVenue[venue.id])"
+              >
+                <span
+                  v-if="getStatusRibbonText(row.matchesByVenue[venue.id])"
+                  class="match-status-ribbon"
+                  :class="getStatusRibbonClass(row.matchesByVenue[venue.id])"
+                  :title="getStatusRibbonText(row.matchesByVenue[venue.id])"
+                >
+                  {{ getStatusRibbonText(row.matchesByVenue[venue.id]) }}
+                </span>
+                <span
+                  v-if="row.matchesByVenue[venue.id].stage === 'playoff'"
+                  :class="['schedule-stage-ribbon', getStageRibbonClass(row.matchesByVenue[venue.id])]"
+                >
+                  {{ row.matchesByVenue[venue.id].bracketLabel }}
+                </span>
+                <div class="schedule-matchup">
+                  <strong
+                    :class="['schedule-team-name', { 'is-retired-team': isRetiredTeam(row.matchesByVenue[venue.id].teamA) }]"
+                    :title="row.matchesByVenue[venue.id].teamA.name"
+                  >
+                    {{ row.matchesByVenue[venue.id].teamA.name }}
+                  </strong>
+                  <span class="schedule-vs" aria-label="对阵">VS</span>
+                  <strong
+                    :class="['schedule-team-name', { 'is-retired-team': isRetiredTeam(row.matchesByVenue[venue.id].teamB) }]"
+                    :title="row.matchesByVenue[venue.id].teamB.name"
+                  >
+                    {{ row.matchesByVenue[venue.id].teamB.name }}
+                  </strong>
+                </div>
+                <span
+                  v-if="hasRetiredTeam(row.matchesByVenue[venue.id])"
+                  class="schedule-retired-mark"
+                >
+                  不计
+                </span>
+                <span
+                  v-if="shouldShowActualOrderBadge(row.matchesByVenue[venue.id])"
+                  class="schedule-order-chip"
+                  :style="getActualOrderChipStyle(row.matchesByVenue[venue.id])"
+                  title="现场顺序"
+                >
+                  {{ getActualOrderIndex(row.matchesByVenue[venue.id]) }}
+                </span>
+              </div>
+              <span v-else class="schedule-mobile-empty">暂无比赛</span>
+            </div>
+          </div>
+        </article>
+      </div>
+
       <a-modal
         :open="Boolean(selectedMatch)"
         :footer="null"

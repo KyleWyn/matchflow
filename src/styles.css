@@ -1289,6 +1289,10 @@ input {
   color: #9aa5b1;
 }
 
+.schedule-mobile-list {
+  display: none;
+}
+
 .match-detail-modal {
   display: grid;
   gap: 12px;
@@ -1632,6 +1636,10 @@ input {
   font-weight: 700;
 }
 
+.ranking-mobile-list {
+  display: none;
+}
+
 .retire-manager {
   display: grid;
   gap: 12px;
@@ -1915,6 +1923,257 @@ input {
     height: 1px;
   }
 
+  .tables-grid > .ant-card > .ant-card-head,
+  .ranking-band > .ant-card > .ant-card-head {
+    padding: 0 14px;
+  }
+
+  .tables-grid > .ant-card > .ant-card-head .ant-card-head-wrapper,
+  .ranking-band > .ant-card > .ant-card-head .ant-card-head-wrapper {
+    display: grid;
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .tables-grid > .ant-card > .ant-card-head .ant-card-head-title,
+  .tables-grid > .ant-card > .ant-card-head .ant-card-extra,
+  .ranking-band > .ant-card > .ant-card-head .ant-card-head-title,
+  .ranking-band > .ant-card > .ant-card-head .ant-card-extra {
+    padding: 0;
+  }
+
+  .tables-grid > .ant-card > .ant-card-body,
+  .ranking-band > .ant-card > .ant-card-body {
+    padding: 14px;
+  }
+
+  .table-tools,
+  .ranking-tools {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .table-tools .ant-segmented {
+    flex: 0 0 auto;
+    order: 0;
+  }
+
+  .table-tools::after {
+    content: "";
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  .table-tools .ant-btn {
+    min-width: 0;
+    flex: 1 1 0;
+    order: 2;
+  }
+
+  .ranking-tools .ant-btn {
+    flex: 1 1 140px;
+  }
+
+  .tables-grid .ant-table-wrapper,
+  .ranking-band .ant-table-wrapper {
+    display: none;
+  }
+
+  .schedule-mobile-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .schedule-mobile-round {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #e6ebf2;
+    border-radius: 8px;
+    background: #f8fafc;
+  }
+
+  .schedule-mobile-round h3 {
+    margin: 0;
+    color: #0f2f4d;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .schedule-mobile-venues {
+    display: grid;
+    gap: 10px;
+  }
+
+  .schedule-mobile-venue {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .schedule-mobile-venue .venue-header-badge {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    justify-content: flex-start;
+    gap: 7px;
+    color: #52606d;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .schedule-mobile-venue .venue-header-badge::before {
+    content: "";
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: var(--venue-color, #94a3b8);
+    box-shadow: 0 0 0 3px var(--venue-bg, #f8fafc);
+  }
+
+  .schedule-mobile-cell {
+    width: 100%;
+  }
+
+  .schedule-mobile-empty {
+    min-height: 40px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    border: 1px dashed #d7dee8;
+    border-radius: 8px;
+    color: #9aa5b1;
+    background: #ffffff;
+  }
+
+  .ranking-mobile-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .ranking-mobile-card {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #e6ebf2;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .ranking-mobile-card.rank-row-1 {
+    background: #fff7d6;
+  }
+
+  .ranking-mobile-card.rank-row-2 {
+    background: #f1f5f9;
+  }
+
+  .ranking-mobile-card.rank-row-3 {
+    background: #fff0e0;
+  }
+
+  .ranking-mobile-card.rank-row-retired {
+    border-style: dashed;
+    background: #f8fafc;
+  }
+
+  .ranking-mobile-head {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ranking-mobile-head .ranking-team-name {
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .ranking-mobile-head .ranking-team-name strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ranking-mobile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .ranking-mobile-stats span {
+    min-width: 0;
+    padding: 8px;
+    border-radius: 7px;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .ranking-mobile-stats strong {
+    display: block;
+    margin-top: 2px;
+    color: #0f2f4d;
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .ranking-mobile-matchups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .ranking-mobile-matchup {
+    min-width: 0;
+    min-height: 44px;
+    padding: 7px 8px;
+    display: grid;
+    align-content: center;
+    gap: 3px;
+    border-radius: 7px;
+    text-align: left;
+  }
+
+  .ranking-mobile-matchup span {
+    min-width: 0;
+    overflow: hidden;
+    color: #52606d;
+    font-size: 12px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ranking-mobile-matchup strong {
+    color: inherit;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .ranking-mobile-matchup-action {
+    margin: 0;
+    border: 0;
+    appearance: none;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .ranking-mobile-matchup-action:focus-visible {
+    outline: 2px solid #1677ff;
+    outline-offset: 2px;
+  }
+
   .compact-venue-editor {
     grid-template-columns: 1fr;
   }
@@ -1993,14 +2252,18 @@ input {
 
   .config-generated-actions {
     justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .config-generated-actions > .tool-action-button.ant-btn,
+  .config-generated-actions > .password-confirm-trigger {
+    flex: 0 0 calc((100% - 10px) / 2);
+    max-width: calc((100% - 10px) / 2);
   }
 
   .config-generated-actions .tool-action-button.ant-btn {
-    flex: 1 1 150px;
-  }
-
-  .ranking-tools {
-    justify-content: flex-start;
+    min-width: 0;
+    width: 100%;
   }
 
   .matrix-sort {
