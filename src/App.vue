@@ -1,6 +1,6 @@
 <script setup>
 // 应用组装层：只负责组织页面模块，并把核心调度状态传给各功能组件。
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import ConfigPanel from './components/ConfigPanel.vue';
@@ -106,6 +106,22 @@ const playoffMobileViewOptions = [
   { label: '对阵', value: 'bracket' },
 ];
 
+function handleMobileFixedWheel(event) {
+  if (!window.matchMedia('(max-width: 640px)').matches || event.ctrlKey) return;
+
+  const fixedControl = event.target.closest?.(
+    '.app-header, .stage-tabs > .ant-tabs-nav, .mobile-stage-switch',
+  );
+  if (!fixedControl) return;
+
+  event.preventDefault();
+  window.scrollBy({
+    top: event.deltaY,
+    left: event.deltaX,
+    behavior: 'auto',
+  });
+}
+
 watch(
   () => ({
     activeTab: activeTab.value,
@@ -126,6 +142,8 @@ watch(
 );
 
 onMounted(() => {
+  document.addEventListener('wheel', handleMobileFixedWheel, { capture: true, passive: false });
+
   if (!restoredFromStorage.value) return;
 
   message.success({
@@ -133,6 +151,10 @@ onMounted(() => {
     duration: 3,
   });
   restoredFromStorage.value = false;
+});
+
+onUnmounted(() => {
+  document.removeEventListener('wheel', handleMobileFixedWheel, { capture: true });
 });
 
 function handleGenerateSchedule() {
@@ -200,11 +222,19 @@ function confirmCompletedScoreEdit() {
         <a-tabs v-model:active-key="activeTab" class="stage-tabs">
           <a-tab-pane key="league" tab="积分赛程">
             <div v-if="hasLeagueSchedule" class="mobile-stage-switch">
-              <a-segmented
-                v-model:value="leagueMobileView"
-                :options="leagueMobileViewOptions"
-                size="small"
-              />
+              <div class="mobile-stage-options" role="tablist" aria-label="积分赛程功能导航">
+                <button
+                  v-for="option in leagueMobileViewOptions"
+                  :key="option.value"
+                  type="button"
+                  :class="['mobile-stage-option', { 'is-active': leagueMobileView === option.value }]"
+                  role="tab"
+                  :aria-selected="leagueMobileView === option.value"
+                  @click="leagueMobileView = option.value"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
             </div>
 
             <div :class="['mobile-stage-panel', { 'is-active': !hasLeagueSchedule || leagueMobileView === 'overview' }]">
@@ -287,11 +317,19 @@ function confirmCompletedScoreEdit() {
 
             <template v-if="hasPlayoffSchedule">
               <div class="mobile-stage-switch">
-                <a-segmented
-                  v-model:value="playoffMobileView"
-                  :options="playoffMobileViewOptions"
-                  size="small"
-                />
+                <div class="mobile-stage-options" role="tablist" aria-label="排位赛功能导航">
+                  <button
+                    v-for="option in playoffMobileViewOptions"
+                    :key="option.value"
+                    type="button"
+                    :class="['mobile-stage-option', { 'is-active': playoffMobileView === option.value }]"
+                    role="tab"
+                    :aria-selected="playoffMobileView === option.value"
+                    @click="playoffMobileView = option.value"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
               </div>
 
               <div :class="['mobile-stage-panel', { 'is-active': playoffMobileView === 'overview' }]">
