@@ -58,7 +58,7 @@ export function useRankingStats(source) {
       key: "rank",
       fixed: "left",
       align: "center",
-      width: 90,
+      width: 54,
     },
     {
       title: "队伍",
@@ -66,36 +66,38 @@ export function useRankingStats(source) {
       key: "name",
       fixed: "left",
       align: "center",
-      width: 140,
+      width: 92,
     },
     {
       title: "胜负场",
       dataIndex: "winLoss",
       key: "winLoss",
+      fixed: "left",
       align: "center",
-      width: 90,
+      width: 64,
     },
     {
       title: "净胜分",
       dataIndex: "diff",
       key: "diff",
+      fixed: "left",
       align: "center",
-      width: 90,
+      width: 64,
     },
-
     ...matrixTeams.value.map((team) => ({
       title: team.name,
       dataIndex: team.id,
       key: team.id,
       align: "center",
-      width: 120,
+      width: 78,
     })),
     {
       title: "进度",
       dataIndex: "playedProgress",
       key: "playedProgress",
+      fixed: "right",
       align: "center",
-      width: 120,
+      width: 68,
     },
   ]);
 

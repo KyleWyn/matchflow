@@ -56,6 +56,14 @@ const staticColumnKeys = ['rank', 'name', 'winLoss', 'playedProgress', 'diff'];
 const matchupColumns = computed(() =>
   matrixColumns.value.filter((column) => !staticColumnKeys.includes(column.key)),
 );
+const matrixScrollX = computed(() =>
+  matrixColumns.value.reduce((total, column) => total + (Number(column.width) || 120), 0),
+);
+
+function getDisplayTeamName(name) {
+  const chars = Array.from(String(name ?? ''));
+  return chars.length > 6 ? `${chars.slice(0, 5).join('')}…` : chars.join('');
+}
 
 function shouldShowRankDecorations(rank) {
   return isRankingFinalized.value && rankingSortModel.value !== 'original' && [1, 2, 3].includes(rank);
@@ -232,8 +240,19 @@ function exportExcel() {
         row-key="id"
         size="middle"
         class="matrix-table"
+        :scroll="{ x: matrixScrollX }"
         :row-class-name="getDisplayRankClass"
       >
+        <template #headerCell="{ column }">
+          <span
+            v-if="!staticColumnKeys.includes(column.key)"
+            class="ranking-column-team-name"
+            :title="column.title"
+          >
+            {{ getDisplayTeamName(column.title) }}
+          </span>
+          <template v-else>{{ column.title }}</template>
+        </template>
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'rank'">
             <span :class="['rank-badge', record.retired ? 'rank-badge-retired' : `rank-badge-${record.rank}`]">
@@ -242,8 +261,8 @@ function exportExcel() {
             </span>
           </template>
           <template v-if="column.key === 'name'">
-            <span :class="['ranking-team-name', { 'is-retired': record.retired }]">
-              <strong>{{ record.name }}</strong>
+            <span :class="['ranking-team-name', { 'is-retired': record.retired }]" :title="record.name">
+              <strong>{{ getDisplayTeamName(record.name) }}</strong>
               <span v-if="record.retired" class="ranking-retired-tag">退赛</span>
             </span>
           </template>
@@ -303,7 +322,7 @@ function exportExcel() {
               {{ record.rank }}
             </span>
             <span :class="['ranking-team-name', { 'is-retired': record.retired }]">
-              <strong>{{ record.name }}</strong>
+              <strong>{{ getDisplayTeamName(record.name) }}</strong>
               <span v-if="record.retired" class="ranking-retired-tag">退赛</span>
             </span>
           </div>
@@ -330,7 +349,7 @@ function exportExcel() {
                 title="点击编辑比分"
                 @click="editCellScore(record, column)"
               >
-                <span>{{ column.title }}</span>
+                <span :title="column.title">{{ getDisplayTeamName(column.title) }}</span>
                 <strong>{{ getMatrixCell(record.id, column.key).text }}</strong>
               </button>
               <span
@@ -340,7 +359,7 @@ function exportExcel() {
                   `matrix-cell-${getMatrixCell(record.id, column.key).tone}`,
                 ]"
               >
-                <span>{{ column.title }}</span>
+                <span :title="column.title">{{ getDisplayTeamName(column.title) }}</span>
                 <strong>{{ getMatrixCell(record.id, column.key).text }}</strong>
               </span>
             </template>

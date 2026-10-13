@@ -1421,9 +1421,9 @@ input {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-width: 42px;
+  min-width: 32px;
   min-height: 24px;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: 999px;
   color: #1f2933;
   background: rgba(255, 255, 255, 0.68);
@@ -1478,6 +1478,17 @@ input {
   justify-content: center;
   gap: 6px;
   max-width: 100%;
+  white-space: nowrap;
+}
+
+.ranking-team-name strong,
+.ranking-column-team-name {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .ranking-team-name.is-retired strong {
@@ -1517,9 +1528,9 @@ input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 58px;
+  min-width: 46px;
   min-height: 26px;
-  padding: 3px 8px;
+  padding: 3px 6px;
   border-radius: 6px;
   font-size: 13px;
   line-height: 1.2;
@@ -1557,7 +1568,7 @@ input {
   align-items: baseline;
   gap: 1px;
   color: #0f2f4d;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
   font-weight: 700;
   white-space: nowrap;
@@ -1566,13 +1577,13 @@ input {
 
 .played-progress-text strong {
   color: #0f2f4d;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 750;
 }
 
 .played-progress-text span {
   color: #8a9aab;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 650;
 }
 
