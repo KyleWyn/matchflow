@@ -27,6 +27,16 @@ html,
   background: #f6f8fb;
 }
 
+html {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 button,
 input {
   font: inherit;
@@ -129,6 +139,103 @@ input {
   margin: 0 auto;
   padding: 18px clamp(16px, 4vw, 40px) 56px;
   background: #f6f8fb;
+}
+
+[data-stage-section] {
+  scroll-margin-top: 18px;
+}
+
+.stage-section-layout {
+  position: relative;
+  display: block;
+}
+
+.stage-section-layout.has-section-nav {
+  display: block;
+}
+
+.stage-section-main {
+  min-width: 0;
+}
+
+.stage-section-nav {
+  position: fixed;
+  left: max(0px, calc((100vw - 1440px) / 2 - 12px));
+  top: 150px;
+  z-index: 12;
+  width: 36px;
+  padding: 3px;
+  display: grid;
+  gap: 3px;
+  border: 1px solid #e6ebf2;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 20px rgba(17, 40, 72, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.stage-section-nav-button {
+  width: 28px;
+  min-height: 34px;
+  padding: 4px 1px;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #52606d;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.stage-section-nav-button .anticon {
+  color: currentColor;
+  font-size: 14px;
+}
+
+.stage-section-nav-button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.stage-section-nav-button:hover,
+.stage-section-nav-button:focus-visible {
+  border-color: rgba(22, 119, 255, 0.2);
+  color: #0958d9;
+  background: #eef6ff;
+  box-shadow: 0 6px 16px rgba(17, 40, 72, 0.08);
+  transform: translateY(-1px);
+}
+
+.stage-section-nav-button:focus-visible {
+  outline: 2px solid rgba(22, 119, 255, 0.38);
+  outline-offset: 2px;
+}
+
+.stage-section-nav-button.is-active {
+  border-color: rgba(22, 119, 255, 0.28);
+  color: #0958d9;
+  background: #e6f4ff;
+}
+
+@media (max-width: 1120px) {
+  .stage-section-nav {
+    display: none;
+  }
 }
 
 .stage-tabs > .ant-tabs-nav {
@@ -1803,6 +1910,14 @@ input {
 }
 
 @media (max-width: 980px) {
+  .stage-section-layout.has-section-nav {
+    display: block;
+  }
+
+  .stage-section-nav {
+    display: none;
+  }
+
   .top-dashboard {
     grid-template-columns: 1fr;
   }

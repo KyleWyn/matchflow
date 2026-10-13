@@ -1,7 +1,14 @@
 <script setup>
 // 应用组装层：只负责组织页面模块，并把核心调度状态传给各功能组件。
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
+import {
+  AppstoreOutlined,
+  BarChartOutlined,
+  BranchesOutlined,
+  EnvironmentOutlined,
+  TableOutlined,
+} from '@ant-design/icons-vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import ConfigPanel from './components/ConfigPanel.vue';
 import DataPorter from './components/DataPorter.vue';
@@ -91,6 +98,7 @@ const leagueMobileView = ref(normalizePreference(storedUiPreferences.leagueMobil
 const playoffMobileView = ref(normalizePreference(storedUiPreferences.playoffMobileView, playoffMobileViewValues, 'overview'));
 const scoreEditConfirmRef = ref(null);
 const pendingScoreEditMatch = ref(null);
+let stageSectionScrollFrame = 0;
 const hasActiveMobileStageNav = computed(() =>
   (activeTab.value === 'league' && hasLeagueSchedule.value) ||
   (activeTab.value === 'playoff' && hasPlayoffSchedule.value),
@@ -109,6 +117,23 @@ const playoffMobileViewOptions = [
   { label: '赛程', value: 'schedule' },
   { label: '对阵', value: 'bracket' },
 ];
+const floatingStageOptions = {
+  league: [
+    { label: '总览', value: 'overview', icon: AppstoreOutlined },
+    { label: '场地', value: 'venue', icon: EnvironmentOutlined },
+    { label: '赛程', value: 'schedule', icon: TableOutlined },
+    { label: '排名', value: 'ranking', icon: BarChartOutlined },
+  ],
+  playoff: [
+    { label: '总览', value: 'overview', icon: AppstoreOutlined },
+    { label: '场地', value: 'venue', icon: EnvironmentOutlined },
+    { label: '赛程', value: 'schedule', icon: TableOutlined },
+    { label: '对阵', value: 'bracket', icon: BranchesOutlined },
+  ],
+};
+const activeFloatingStageSection = computed(() =>
+  activeTab.value === 'league' ? leagueMobileView.value : playoffMobileView.value,
+);
 
 function handleMobileFixedWheel(event) {
   if (!window.matchMedia('(max-width: 640px)').matches || event.ctrlKey) return;
@@ -124,6 +149,50 @@ function handleMobileFixedWheel(event) {
     left: event.deltaX,
     behavior: 'auto',
   });
+}
+
+function setActiveStageSection(section) {
+  if (activeTab.value === 'league' && leagueMobileView.value !== section) {
+    leagueMobileView.value = section;
+  } else if (activeTab.value === 'playoff' && playoffMobileView.value !== section) {
+    playoffMobileView.value = section;
+  }
+}
+
+function updateActiveStageSectionFromScroll() {
+  stageSectionScrollFrame = 0;
+  if (!window.matchMedia('(min-width: 1121px)').matches) return;
+  if (activeTab.value === 'league' && !hasLeagueSchedule.value) return;
+  if (activeTab.value === 'playoff' && !hasPlayoffSchedule.value) return;
+
+  const markerTop = 170;
+  const markerBottom = window.innerHeight * 0.72;
+  const options = floatingStageOptions[activeTab.value] ?? [];
+  let activeSection = options[0]?.value;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  options.forEach((option) => {
+    const element = document.querySelector(`[data-stage-section="${activeTab.value}-${option.value}"]`);
+    if (!element) return;
+
+    const rect = element.getBoundingClientRect();
+    if (rect.bottom < markerTop || rect.top > markerBottom) return;
+
+    const distance = Math.abs(rect.top - markerTop);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      activeSection = option.value;
+    }
+  });
+
+  if (activeSection) {
+    setActiveStageSection(activeSection);
+  }
+}
+
+function scheduleActiveStageSectionUpdate() {
+  if (stageSectionScrollFrame) return;
+  stageSectionScrollFrame = window.requestAnimationFrame(updateActiveStageSectionFromScroll);
 }
 
 watch(
@@ -147,6 +216,9 @@ watch(
 
 onMounted(() => {
   document.addEventListener('wheel', handleMobileFixedWheel, { capture: true, passive: false });
+  window.addEventListener('scroll', scheduleActiveStageSectionUpdate, { passive: true });
+  window.addEventListener('resize', scheduleActiveStageSectionUpdate, { passive: true });
+  nextTick(scheduleActiveStageSectionUpdate);
 
   if (!restoredFromStorage.value) return;
 
@@ -159,6 +231,15 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('wheel', handleMobileFixedWheel, { capture: true });
+  window.removeEventListener('scroll', scheduleActiveStageSectionUpdate);
+  window.removeEventListener('resize', scheduleActiveStageSectionUpdate);
+  if (stageSectionScrollFrame) {
+    window.cancelAnimationFrame(stageSectionScrollFrame);
+  }
+});
+
+watch(activeTab, () => {
+  nextTick(scheduleActiveStageSectionUpdate);
 });
 
 function handleGenerateSchedule() {
@@ -209,6 +290,15 @@ function confirmCompletedScoreEdit() {
   openMatchScoreModal(pendingScoreEditMatch.value);
   pendingScoreEditMatch.value = null;
 }
+
+async function scrollToStageSection(section) {
+  setActiveStageSection(section);
+
+  await nextTick();
+
+  const target = document.querySelector(`[data-stage-section="${activeTab.value}-${section}"]`);
+  target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 </script>
 
 <template>
@@ -225,155 +315,119 @@ function confirmCompletedScoreEdit() {
       <a-layout-content class="app-content">
         <a-tabs v-model:active-key="activeTab" class="stage-tabs">
           <a-tab-pane key="league" tab="积分赛程">
-            <div v-if="hasLeagueSchedule" class="mobile-stage-switch">
-              <div class="mobile-stage-options" role="tablist" aria-label="积分赛程功能导航">
+            <div :class="['stage-section-layout', { 'has-section-nav': hasLeagueSchedule }]">
+              <nav v-if="hasLeagueSchedule" class="stage-section-nav" aria-label="积分赛程快速导航">
                 <button
-                  v-for="option in leagueMobileViewOptions"
+                  v-for="option in floatingStageOptions.league"
                   :key="option.value"
                   type="button"
-                  :class="['mobile-stage-option', { 'is-active': leagueMobileView === option.value }]"
-                  role="tab"
-                  :aria-selected="leagueMobileView === option.value"
-                  @click="leagueMobileView = option.value"
+                  :class="['stage-section-nav-button', { 'is-active': activeFloatingStageSection === option.value }]"
+                  :title="option.label"
+                  @click="scrollToStageSection(option.value)"
                 >
-                  {{ option.label }}
+                  <component :is="option.icon" />
+                  <span>{{ option.label }}</span>
                 </button>
+              </nav>
+
+              <div class="stage-section-main">
+                <div v-if="hasLeagueSchedule" class="mobile-stage-switch">
+                  <div class="mobile-stage-options" role="tablist" aria-label="积分赛程功能导航">
+                    <button
+                      v-for="option in leagueMobileViewOptions"
+                      :key="option.value"
+                      type="button"
+                      :class="['mobile-stage-option', { 'is-active': leagueMobileView === option.value }]"
+                      role="tab"
+                      :aria-selected="leagueMobileView === option.value"
+                      @click="leagueMobileView = option.value"
+                    >
+                      {{ option.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <div :class="['mobile-stage-panel', { 'is-active': !hasLeagueSchedule || leagueMobileView === 'overview' }]">
+                  <ConfigPanel
+                    data-stage-section="league-overview"
+                    v-model:team-count="leagueTeamCount"
+                    v-model:venue-count="leagueVenueCount"
+                    v-model:team-names="leagueTeamNames"
+                    v-model:venue-names="leagueVenueNames"
+                    v-model:retired-team-ids="retiredLeagueTeamIds"
+                    :has-schedule="hasLeagueSchedule"
+                    :summary="leagueSummary"
+                    :progress-percent="leagueProgressPercent"
+                    @generate="handleGenerateSchedule"
+                    @reset="resetLeagueProgress"
+                  />
+                </div>
+
+                <template v-if="hasLeagueSchedule">
+                  <div :class="['mobile-stage-panel', { 'is-active': leagueMobileView === 'venue' }]">
+                    <VenueGrid
+                      data-stage-section="league-venue"
+                      stage="league"
+                      :venues="leagueVenues"
+                      :matches="leagueMatches"
+                      :recommendations="leagueVenueRecommendations"
+                      :waiting-count="leagueWaitingMatches.length"
+                      @open-score="openScoreModal"
+                      @arrange-recommended="arrangeRecommendedMatch"
+                      @undo-match="undoVenueMatch"
+                      @skip-recommended="handleSkipRecommendedMatch"
+                      @use-dynamic="handleDynamicAllocateVenue"
+                    />
+                  </div>
+
+                  <div :class="['mobile-stage-panel', { 'is-active': leagueMobileView === 'schedule' }]">
+                    <MatchTables
+                      data-stage-section="league-schedule"
+                      v-model:table-view="leagueTableView"
+                      title="单循环总赛程表"
+                      :matches="leagueMatches"
+                      :venues="leagueVenues"
+                      :retired-team-ids="retiredLeagueTeamIds"
+                    />
+                  </div>
+
+                  <div :class="['mobile-stage-panel', { 'is-active': leagueMobileView === 'ranking' }]">
+                    <RankingStats
+                      data-stage-section="league-ranking"
+                      v-model:ranking-sort="rankingSort"
+                      :retired-team-ids="retiredLeagueTeamIds"
+                      :team-names="leagueTeamNames"
+                      :matches="leagueMatches"
+                      :completed-matches="completedLeagueMatches"
+                      @edit-score="handleOpenMatchScoreModal"
+                    />
+                  </div>
+                </template>
+
+                <a-empty v-else class="empty-state" description="配置队伍和场地后生成单循环赛程" />
               </div>
             </div>
-
-            <div :class="['mobile-stage-panel', { 'is-active': !hasLeagueSchedule || leagueMobileView === 'overview' }]">
-              <ConfigPanel
-                v-model:team-count="leagueTeamCount"
-                v-model:venue-count="leagueVenueCount"
-                v-model:team-names="leagueTeamNames"
-                v-model:venue-names="leagueVenueNames"
-                v-model:retired-team-ids="retiredLeagueTeamIds"
-                :has-schedule="hasLeagueSchedule"
-                :summary="leagueSummary"
-                :progress-percent="leagueProgressPercent"
-                @generate="handleGenerateSchedule"
-                @reset="resetLeagueProgress"
-              />
-            </div>
-
-            <template v-if="hasLeagueSchedule">
-              <div :class="['mobile-stage-panel', { 'is-active': leagueMobileView === 'venue' }]">
-                <VenueGrid
-                  stage="league"
-                  :venues="leagueVenues"
-                  :matches="leagueMatches"
-                  :recommendations="leagueVenueRecommendations"
-                  :waiting-count="leagueWaitingMatches.length"
-                  @open-score="openScoreModal"
-                  @arrange-recommended="arrangeRecommendedMatch"
-                  @undo-match="undoVenueMatch"
-                  @skip-recommended="handleSkipRecommendedMatch"
-                  @use-dynamic="handleDynamicAllocateVenue"
-                />
-              </div>
-
-              <div :class="['mobile-stage-panel', { 'is-active': leagueMobileView === 'schedule' }]">
-                <MatchTables
-                  v-model:table-view="leagueTableView"
-                  title="单循环总赛程表"
-                  :matches="leagueMatches"
-                  :venues="leagueVenues"
-                  :retired-team-ids="retiredLeagueTeamIds"
-                />
-              </div>
-
-              <div :class="['mobile-stage-panel', { 'is-active': leagueMobileView === 'ranking' }]">
-                <RankingStats
-                  v-model:ranking-sort="rankingSort"
-                  :retired-team-ids="retiredLeagueTeamIds"
-                  :team-names="leagueTeamNames"
-                  :matches="leagueMatches"
-                  :completed-matches="completedLeagueMatches"
-                  @edit-score="handleOpenMatchScoreModal"
-                />
-              </div>
-            </template>
-
-            <a-empty v-else class="empty-state" description="配置队伍和场地后生成单循环赛程" />
           </a-tab-pane>
 
           <a-tab-pane key="playoff" tab="排位赛">
-            <PlayoffPanel
-              v-if="!hasPlayoffSchedule"
-              v-model:playoff-venue-count="playoffVenueCount"
-              v-model:playoff-venue-names="playoffVenueNames"
-              v-model:playoff-advance-count="playoffAdvanceCount"
-              v-model:manual-playoff-names="manualPlayoffNames"
-              :has-league-schedule="hasLeagueSchedule"
-              :has-playoff-schedule="hasPlayoffSchedule"
-              :is-league-complete="isLeagueComplete"
-              :playoff-matches="playoffMatches"
-              :ranked-league-teams="rankedLeagueTeams"
-              :playoff-source="playoffSource"
-              :final-standings="playoffFinalStandings"
-              :summary="playoffSummary"
-              :progress-percent="playoffProgressPercent"
-              @generate-from-ranking="handleGeneratePlayoffFromRanking"
-              @generate-manual="handleGenerateManualPlayoff"
-              @reset="resetPlayoffProgress"
-              @edit-score="handleOpenMatchScoreModal"
-            />
+            <div :class="['stage-section-layout', { 'has-section-nav': hasPlayoffSchedule }]">
+              <nav v-if="hasPlayoffSchedule" class="stage-section-nav" aria-label="排位赛快速导航">
+                <button
+                  v-for="option in floatingStageOptions.playoff"
+                  :key="option.value"
+                  type="button"
+                  :class="['stage-section-nav-button', { 'is-active': activeFloatingStageSection === option.value }]"
+                  :title="option.label"
+                  @click="scrollToStageSection(option.value)"
+                >
+                  <component :is="option.icon" />
+                  <span>{{ option.label }}</span>
+                </button>
+              </nav>
 
-            <template v-if="hasPlayoffSchedule">
-              <div class="mobile-stage-switch">
-                <div class="mobile-stage-options" role="tablist" aria-label="排位赛功能导航">
-                  <button
-                    v-for="option in playoffMobileViewOptions"
-                    :key="option.value"
-                    type="button"
-                    :class="['mobile-stage-option', { 'is-active': playoffMobileView === option.value }]"
-                    role="tab"
-                    :aria-selected="playoffMobileView === option.value"
-                    @click="playoffMobileView = option.value"
-                  >
-                    {{ option.label }}
-                  </button>
-                </div>
-              </div>
-
-              <div :class="['mobile-stage-panel', { 'is-active': playoffMobileView === 'overview' }]">
-                <PlayoffControlPanel
-                  v-model:playoff-venue-names="playoffVenueNames"
-                  v-model:manual-playoff-names="manualPlayoffNames"
-                  :playoff-venue-count="playoffVenueCount"
-                  :playoff-source="playoffSource"
-                  :summary="playoffSummary"
-                  :progress-percent="playoffProgressPercent"
-                  @reset="resetPlayoffProgress"
-                />
-              </div>
-
-              <div :class="['mobile-stage-panel', { 'is-active': playoffMobileView === 'venue' }]">
-                <VenueGrid
-                  stage="playoff"
-                  :venues="playoffVenues"
-                  :matches="playoffMatches"
-                  :recommendations="playoffVenueRecommendations"
-                  :waiting-count="playoffWaitingMatches.length"
-                  @open-score="openScoreModal"
-                  @arrange-recommended="arrangeRecommendedMatch"
-                  @undo-match="undoVenueMatch"
-                  @skip-recommended="handleSkipRecommendedMatch"
-                  @use-dynamic="handleDynamicAllocateVenue"
-                />
-              </div>
-
-              <div :class="['mobile-stage-panel', { 'is-active': playoffMobileView === 'schedule' }]">
-                <MatchTables
-                  v-model:table-view="playoffTableView"
-                  title="排位赛赛程表"
-                  :matches="playoffMatches"
-                  :venues="playoffVenues"
-                />
-              </div>
-
-              <div :class="['mobile-stage-panel', { 'is-active': playoffMobileView === 'bracket' }]">
+              <div class="stage-section-main">
                 <PlayoffPanel
+                  v-if="!hasPlayoffSchedule"
                   v-model:playoff-venue-count="playoffVenueCount"
                   v-model:playoff-venue-names="playoffVenueNames"
                   v-model:playoff-advance-count="playoffAdvanceCount"
@@ -387,14 +441,94 @@ function confirmCompletedScoreEdit() {
                   :final-standings="playoffFinalStandings"
                   :summary="playoffSummary"
                   :progress-percent="playoffProgressPercent"
-                  :show-tools="false"
                   @generate-from-ranking="handleGeneratePlayoffFromRanking"
                   @generate-manual="handleGenerateManualPlayoff"
                   @reset="resetPlayoffProgress"
                   @edit-score="handleOpenMatchScoreModal"
                 />
+
+                <template v-if="hasPlayoffSchedule">
+                  <div class="mobile-stage-switch">
+                    <div class="mobile-stage-options" role="tablist" aria-label="排位赛功能导航">
+                      <button
+                        v-for="option in playoffMobileViewOptions"
+                        :key="option.value"
+                        type="button"
+                        :class="['mobile-stage-option', { 'is-active': playoffMobileView === option.value }]"
+                        role="tab"
+                        :aria-selected="playoffMobileView === option.value"
+                        @click="playoffMobileView = option.value"
+                      >
+                        {{ option.label }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div :class="['mobile-stage-panel', { 'is-active': playoffMobileView === 'overview' }]">
+                    <PlayoffControlPanel
+                      data-stage-section="playoff-overview"
+                      v-model:playoff-venue-names="playoffVenueNames"
+                      v-model:manual-playoff-names="manualPlayoffNames"
+                      :playoff-venue-count="playoffVenueCount"
+                      :playoff-source="playoffSource"
+                      :summary="playoffSummary"
+                      :progress-percent="playoffProgressPercent"
+                      @reset="resetPlayoffProgress"
+                    />
+                  </div>
+
+                  <div :class="['mobile-stage-panel', { 'is-active': playoffMobileView === 'venue' }]">
+                    <VenueGrid
+                      data-stage-section="playoff-venue"
+                      stage="playoff"
+                      :venues="playoffVenues"
+                      :matches="playoffMatches"
+                      :recommendations="playoffVenueRecommendations"
+                      :waiting-count="playoffWaitingMatches.length"
+                      @open-score="openScoreModal"
+                      @arrange-recommended="arrangeRecommendedMatch"
+                      @undo-match="undoVenueMatch"
+                      @skip-recommended="handleSkipRecommendedMatch"
+                      @use-dynamic="handleDynamicAllocateVenue"
+                    />
+                  </div>
+
+                  <div :class="['mobile-stage-panel', { 'is-active': playoffMobileView === 'schedule' }]">
+                    <MatchTables
+                      data-stage-section="playoff-schedule"
+                      v-model:table-view="playoffTableView"
+                      title="排位赛赛程表"
+                      :matches="playoffMatches"
+                      :venues="playoffVenues"
+                    />
+                  </div>
+
+                  <div :class="['mobile-stage-panel', { 'is-active': playoffMobileView === 'bracket' }]">
+                    <PlayoffPanel
+                      data-stage-section="playoff-bracket"
+                      v-model:playoff-venue-count="playoffVenueCount"
+                      v-model:playoff-venue-names="playoffVenueNames"
+                      v-model:playoff-advance-count="playoffAdvanceCount"
+                      v-model:manual-playoff-names="manualPlayoffNames"
+                      :has-league-schedule="hasLeagueSchedule"
+                      :has-playoff-schedule="hasPlayoffSchedule"
+                      :is-league-complete="isLeagueComplete"
+                      :playoff-matches="playoffMatches"
+                      :ranked-league-teams="rankedLeagueTeams"
+                      :playoff-source="playoffSource"
+                      :final-standings="playoffFinalStandings"
+                      :summary="playoffSummary"
+                      :progress-percent="playoffProgressPercent"
+                      :show-tools="false"
+                      @generate-from-ranking="handleGeneratePlayoffFromRanking"
+                      @generate-manual="handleGenerateManualPlayoff"
+                      @reset="resetPlayoffProgress"
+                      @edit-score="handleOpenMatchScoreModal"
+                    />
+                  </div>
+                </template>
               </div>
-            </template>
+            </div>
           </a-tab-pane>
         </a-tabs>
       </a-layout-content>
