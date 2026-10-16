@@ -1,6 +1,7 @@
 <script setup>
 // 排位赛面板：负责从单循环排名生成第二阶段，也支持手动创建 4 队排位赛。
 import { computed, ref } from 'vue';
+import { message } from 'ant-design-vue';
 import {
   BranchesOutlined,
   CrownOutlined,
@@ -190,18 +191,23 @@ function getPlacement(match, side) {
   return null;
 }
 
-function exportPlayoffResultImage() {
-  exportElementAsPng(playoffExportRef.value, `排位赛结果-${new Date().toISOString().slice(0, 10)}.png`, {
-    className: 'playoff-result-export',
-    onClone: (clone) => {
-      clone.querySelector('.card-head-tools')?.remove();
-    },
-    extraCss: `
-      .playoff-result-export .playoff-band {
-        margin: 0;
-      }
-    `,
-  });
+async function exportPlayoffResultImage() {
+  try {
+    await exportElementAsPng(playoffExportRef.value, `排位赛结果-${new Date().toISOString().slice(0, 10)}.png`, {
+      className: 'playoff-result-export',
+      onClone: (clone) => {
+        clone.querySelector('.card-head-tools')?.remove();
+      },
+      extraCss: `
+        .playoff-result-export .playoff-band {
+          margin: 0;
+        }
+      `,
+    });
+  } catch (error) {
+    console.error('排位赛结果导出失败', error);
+    message.error('导出失败，请在浏览器中重试');
+  }
 }
 </script>
 

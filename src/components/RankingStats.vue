@@ -2,6 +2,7 @@
 // 排名对战表：在组件内部维护排序规则，并展示排名、胜负场、进度、净胜分和对战结果。
 import { computed, ref } from 'vue';
 import { DownloadOutlined, TrophyOutlined } from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 import { rankingSortOptions } from '../constants/tables';
 import { useRankingStats } from '../composables/useRankingStats';
 import { exportElementAsPng } from '../utils/exportImage';
@@ -52,6 +53,10 @@ const {
 const exportColumns = computed(() =>
   matrixColumns.value.filter((column) => column.key !== 'playedProgress'),
 );
+const exportTableWidth = computed(() =>
+  exportColumns.value.reduce((total, column) => total + (Number(column.width) || 120), 0),
+);
+const exportImageWidth = computed(() => exportTableWidth.value + 48);
 const staticColumnKeys = ['rank', 'name', 'winLoss', 'playedProgress', 'diff'];
 const matchupColumns = computed(() =>
   matrixColumns.value.filter((column) => !staticColumnKeys.includes(column.key)),
@@ -139,29 +144,62 @@ function formatExcelTextCell(value) {
   return escapedText;
 }
 
-function exportResultImage() {
-  exportElementAsPng(rankingExportRef.value, `排名对战表-${new Date().toISOString().slice(0, 10)}.png`, {
-    className: 'ranking-result-export',
-    onClone: (clone) => {
-      clone.querySelector('.ranking-tools')?.remove();
-    },
-    extraCss: `
-      .ranking-result-export .matrix-table th:last-child,
-      .ranking-result-export .matrix-table td:last-child,
-      .ranking-result-export .matrix-table col:last-child {
-        display: none !important;
-      }
-      .ranking-result-export .ranking-band {
-        margin: 0;
-      }
-      .ranking-result-export .ranking-mobile-list {
-        display: none !important;
-      }
-      .ranking-result-export .ant-table-wrapper {
-        display: block !important;
-      }
-    `,
-  });
+async function exportResultImage() {
+  try {
+    await exportElementAsPng(rankingExportRef.value, `排名对战表-${new Date().toISOString().slice(0, 10)}.png`, {
+      className: 'ranking-result-export',
+      width: exportImageWidth.value,
+      onClone: (clone) => {
+        clone.querySelector('.ranking-tools')?.remove();
+      },
+      extraCss: `
+        .ranking-result-export .matrix-table th:last-child,
+        .ranking-result-export .matrix-table td:last-child,
+        .ranking-result-export .matrix-table col:last-child {
+          display: none !important;
+        }
+        .ranking-result-export .ranking-band {
+          margin: 0;
+        }
+        .ranking-result-export .ranking-mobile-list {
+          display: none !important;
+        }
+        .ranking-result-export .ant-table-wrapper,
+        .ranking-result-export .ant-table-container,
+        .ranking-result-export .ant-table-content,
+        .ranking-result-export .ant-table-body {
+          display: block !important;
+          width: auto !important;
+          max-width: none !important;
+          overflow: visible !important;
+        }
+        .ranking-result-export .matrix-table table {
+          width: ${exportTableWidth.value}px !important;
+          min-width: ${exportTableWidth.value}px !important;
+          table-layout: fixed !important;
+        }
+        .ranking-result-export .ant-table-cell-fix-left,
+        .ranking-result-export .ant-table-cell-fix-right {
+          position: static !important;
+          left: auto !important;
+          right: auto !important;
+          z-index: auto !important;
+        }
+        .ranking-result-export .ant-table-cell-fix-left-last::after,
+        .ranking-result-export .ant-table-cell-fix-right-first::after,
+        .ranking-result-export .ant-table-container::before,
+        .ranking-result-export .ant-table-container::after {
+          display: none !important;
+        }
+        .ranking-result-export .ant-table-sticky-scroll {
+          display: none !important;
+        }
+      `,
+    });
+  } catch (error) {
+    console.error('排名对战表导出失败', error);
+    message.error('导出失败，请在浏览器中重试');
+  }
 }
 
 function exportExcel() {
