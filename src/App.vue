@@ -99,6 +99,8 @@ const playoffMobileView = ref(normalizePreference(storedUiPreferences.playoffMob
 const scoreEditConfirmRef = ref(null);
 const pendingScoreEditMatch = ref(null);
 let stageSectionScrollFrame = 0;
+let pendingStageSection = null;
+let stageSectionScrollReleaseTimer = 0;
 const hasActiveMobileStageNav = computed(() =>
   (activeTab.value === 'league' && hasLeagueSchedule.value) ||
   (activeTab.value === 'playoff' && hasPlayoffSchedule.value),
@@ -159,6 +161,14 @@ function setActiveStageSection(section) {
   }
 }
 
+function clearPendingStageSection() {
+  pendingStageSection = null;
+  if (stageSectionScrollReleaseTimer) {
+    window.clearTimeout(stageSectionScrollReleaseTimer);
+    stageSectionScrollReleaseTimer = 0;
+  }
+}
+
 function updateActiveStageSectionFromScroll() {
   stageSectionScrollFrame = 0;
   if (!window.matchMedia('(min-width: 1121px)').matches) return;
@@ -167,6 +177,18 @@ function updateActiveStageSectionFromScroll() {
 
   const markerTop = 170;
   const markerBottom = window.innerHeight * 0.72;
+
+  if (pendingStageSection) {
+    const target = document.querySelector(`[data-stage-section="${pendingStageSection}"]`);
+    const reachedPageBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1;
+
+    if (target && Math.abs(target.getBoundingClientRect().top - markerTop) > 2 && !reachedPageBottom) {
+      return;
+    }
+
+    clearPendingStageSection();
+  }
+
   const options = floatingStageOptions[activeTab.value] ?? [];
   let activeSection = options[0]?.value;
   let closestDistance = Number.POSITIVE_INFINITY;
@@ -236,9 +258,11 @@ onUnmounted(() => {
   if (stageSectionScrollFrame) {
     window.cancelAnimationFrame(stageSectionScrollFrame);
   }
+  clearPendingStageSection();
 });
 
 watch(activeTab, () => {
+  clearPendingStageSection();
   nextTick(scheduleActiveStageSectionUpdate);
 });
 
@@ -296,8 +320,19 @@ async function scrollToStageSection(section) {
 
   await nextTick();
 
-  const target = document.querySelector(`[data-stage-section="${activeTab.value}-${section}"]`);
-  target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const targetSection = `${activeTab.value}-${section}`;
+  const target = document.querySelector(`[data-stage-section="${targetSection}"]`);
+  if (!target) return;
+
+  clearPendingStageSection();
+  pendingStageSection = targetSection;
+  stageSectionScrollReleaseTimer = window.setTimeout(() => {
+    pendingStageSection = null;
+    stageSectionScrollReleaseTimer = 0;
+    scheduleActiveStageSectionUpdate();
+  }, 1500);
+
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 </script>
 

@@ -31,8 +31,8 @@ export function useMatchScheduler() {
   const finishingVenueId = ref(null);
   const finishingStage = ref('league');
   const scoringMatchId = ref(null);
-  const scoreA = ref(0);
-  const scoreB = ref(0);
+  const scoreA = ref(null);
+  const scoreB = ref(null);
   const skippedMatchIdsByVenue = ref({ league: {}, playoff: {} });
   const dynamicMatchIdsByVenue = ref({ league: {}, playoff: {} });
   const playoffAdvanceCount = ref(4);
@@ -454,8 +454,8 @@ export function useMatchScheduler() {
     scoringMatchId.value = match.id;
     finishingVenueId.value = venue.id;
     finishingStage.value = stage;
-    scoreA.value = match.scoreA ?? 0;
-    scoreB.value = match.scoreB ?? 0;
+    scoreA.value = match.scoreA ?? null;
+    scoreB.value = match.scoreB ?? null;
     scoreModalOpen.value = true;
   }
 
@@ -465,8 +465,8 @@ export function useMatchScheduler() {
     scoringMatchId.value = match.id;
     finishingVenueId.value = null;
     finishingStage.value = getStageFromMatch(match);
-    scoreA.value = match.scoreA ?? 0;
-    scoreB.value = match.scoreB ?? 0;
+    scoreA.value = match.scoreA ?? null;
+    scoreB.value = match.scoreB ?? null;
     scoreModalOpen.value = true;
   }
 

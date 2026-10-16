@@ -145,6 +145,12 @@ input {
   scroll-margin-top: 18px;
 }
 
+@media (min-width: 1121px) {
+  [data-stage-section] {
+    scroll-margin-top: 170px;
+  }
+}
+
 .stage-section-layout {
   position: relative;
   display: block;
