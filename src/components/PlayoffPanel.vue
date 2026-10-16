@@ -195,6 +195,7 @@ async function exportPlayoffResultImage() {
   try {
     await exportElementAsPng(playoffExportRef.value, `排位赛结果-${new Date().toISOString().slice(0, 10)}.png`, {
       className: 'playoff-result-export',
+      width: 1200,
       onClone: (clone) => {
         clone.querySelector('.card-head-tools')?.remove();
       },

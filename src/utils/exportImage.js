@@ -73,6 +73,46 @@ function canvasToBlob(canvas) {
   });
 }
 
+function measureAndSerializeExport(wrapper, width, fallbackHeight) {
+  const frame = document.createElement('iframe');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.cssText = `
+    position: fixed;
+    left: -100000px;
+    top: 0;
+    width: ${width}px;
+    height: 1px;
+    border: 0;
+    visibility: hidden;
+    pointer-events: none;
+  `;
+  document.body.appendChild(frame);
+
+  try {
+    const frameDocument = frame.contentDocument;
+    if (!frameDocument) {
+      return {
+        height: fallbackHeight,
+        serialized: new XMLSerializer().serializeToString(wrapper),
+      };
+    }
+
+    frameDocument.documentElement.style.width = `${width}px`;
+    frameDocument.documentElement.style.overflow = 'hidden';
+    frameDocument.body.style.width = `${width}px`;
+    frameDocument.body.style.margin = '0';
+    frameDocument.body.style.overflow = 'hidden';
+    frameDocument.body.appendChild(wrapper);
+
+    return {
+      height: Math.ceil(wrapper.scrollHeight) || fallbackHeight,
+      serialized: new XMLSerializer().serializeToString(wrapper),
+    };
+  } finally {
+    frame.remove();
+  }
+}
+
 export async function exportElementAsPng(element, filename, options = {}) {
   if (!element) throw new Error('没有可导出的内容');
 
@@ -80,21 +120,12 @@ export async function exportElementAsPng(element, filename, options = {}) {
   options.onClone?.(clone);
 
   const width = Math.ceil(options.width ?? element.scrollWidth);
-  const height = Math.ceil(options.height ?? element.scrollHeight);
-  const preferredPixelRatio = Math.max(2, window.devicePixelRatio || 1);
-  const pixelRatio = Math.min(
-    preferredPixelRatio,
-    Math.sqrt(16_000_000 / Math.max(1, width * height)),
-    8192 / Math.max(1, width),
-    8192 / Math.max(1, height),
-  );
   const styleText = `
     ${collectStyleText()}
     * { box-sizing: border-box; }
     body { margin: 0; background: #ffffff; }
     .export-capture {
       width: ${width}px;
-      min-height: ${height}px;
       padding: 0;
       background: #ffffff;
     }
@@ -110,11 +141,19 @@ export async function exportElementAsPng(element, filename, options = {}) {
   style.textContent = styleText;
   wrapper.insertBefore(style, wrapper.firstChild);
 
-  const serialized = new XMLSerializer().serializeToString(wrapper);
+  const measuredExport = measureAndSerializeExport(wrapper, width, Math.ceil(element.scrollHeight));
+  const height = Math.ceil(options.height ?? measuredExport.height);
+  const preferredPixelRatio = Math.max(2, window.devicePixelRatio || 1);
+  const pixelRatio = Math.min(
+    preferredPixelRatio,
+    Math.sqrt(16_000_000 / Math.max(1, width * height)),
+    8192 / Math.max(1, width),
+    8192 / Math.max(1, height),
+  );
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
       <foreignObject width="100%" height="100%">
-        ${serialized}
+        ${measuredExport.serialized}
       </foreignObject>
     </svg>
   `;

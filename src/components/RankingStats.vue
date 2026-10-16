@@ -56,7 +56,7 @@ const exportColumns = computed(() =>
 const exportTableWidth = computed(() =>
   exportColumns.value.reduce((total, column) => total + (Number(column.width) || 120), 0),
 );
-const exportImageWidth = computed(() => exportTableWidth.value + 48);
+const exportImageWidth = computed(() => Math.max(1200, exportTableWidth.value + 48));
 const staticColumnKeys = ['rank', 'name', 'winLoss', 'playedProgress', 'diff'];
 const matchupColumns = computed(() =>
   matrixColumns.value.filter((column) => !staticColumnKeys.includes(column.key)),
