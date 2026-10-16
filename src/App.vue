@@ -175,7 +175,7 @@ function updateActiveStageSectionFromScroll() {
   if (activeTab.value === 'league' && !hasLeagueSchedule.value) return;
   if (activeTab.value === 'playoff' && !hasPlayoffSchedule.value) return;
 
-  const markerTop = 170;
+  const markerTop = 18;
   const markerBottom = window.innerHeight * 0.72;
 
   if (pendingStageSection) {

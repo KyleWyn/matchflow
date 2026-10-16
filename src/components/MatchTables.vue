@@ -1,7 +1,7 @@
 <script setup>
 // 总赛程表：支持计划表和现场表两种视图。
 import { computed, ref } from 'vue';
-import { DownloadOutlined } from '@ant-design/icons-vue';
+import { DownloadOutlined, TrophyOutlined } from '@ant-design/icons-vue';
 import { formatTime, getPairing } from '../utils/format';
 
 const props = defineProps({
@@ -23,6 +23,12 @@ const tableViewOptions = [
   { label: '计划表', value: 'plan' },
   { label: '现场表', value: 'actual' },
 ];
+const statusFilterOptions = [
+  { label: '未开始', value: 'pending' },
+  { label: '进行中', value: 'playing' },
+  { label: '已完成', value: 'completed' },
+];
+const activeStatusFilters = ref(statusFilterOptions.map((option) => option.value));
 const selectedMatch = ref(null);
 const retiredTeamIdSet = computed(() => new Set(props.retiredTeamIds));
 
@@ -125,6 +131,21 @@ const visibleScheduleRows = computed(() =>
   props.tableView === 'actual' ? actualScheduleRows.value : scheduleRows.value,
 );
 
+const filteredScheduleRows = computed(() => {
+  const activeStatuses = new Set(activeStatusFilters.value);
+
+  return visibleScheduleRows.value
+    .map((row) => ({
+      ...row,
+      matchesByVenue: props.venues.reduce((matchesByVenue, venue) => {
+        const match = row.matchesByVenue[venue.id];
+        matchesByVenue[venue.id] = match && activeStatuses.has(getFilterStatus(match)) ? match : null;
+        return matchesByVenue;
+      }, {}),
+    }))
+    .filter((row) => Object.values(row.matchesByVenue).some(Boolean));
+});
+
 const actualVenueTimeline = computed(() =>
   props.venues.reduce((timeline, venue) => {
     const venueMatches = props.matches
@@ -199,12 +220,39 @@ function getStatusText(match) {
   return '未开始';
 }
 
+function getFilterStatus(match) {
+  if (match?.status === 'completed') return 'completed';
+  if (match?.status === 'playing') return 'playing';
+  return 'pending';
+}
+
+function toggleStatusFilter(status) {
+  const nextStatuses = new Set(activeStatusFilters.value);
+  if (nextStatuses.has(status)) {
+    nextStatuses.delete(status);
+  } else {
+    nextStatuses.add(status);
+  }
+
+  activeStatusFilters.value = statusFilterOptions
+    .map((option) => option.value)
+    .filter((value) => nextStatuses.has(value));
+}
+
 function isRetiredTeam(team) {
   return retiredTeamIdSet.value.has(team?.id);
 }
 
 function hasRetiredTeam(match) {
   return isRetiredTeam(match?.teamA) || isRetiredTeam(match?.teamB);
+}
+
+function isWinningSide(match, side) {
+  if (match?.status !== 'completed' || hasRetiredTeam(match)) return false;
+  if (!Number.isFinite(match.scoreA) || !Number.isFinite(match.scoreB)) return false;
+  if (match.scoreA === match.scoreB) return false;
+
+  return side === 'A' ? match.scoreA > match.scoreB : match.scoreB > match.scoreA;
 }
 
 function getStatusRibbonText(match) {
@@ -348,7 +396,7 @@ function getPlanMatrixRows() {
 }
 
 function getCurrentMatrixRows() {
-  return visibleScheduleRows.value.map((row) => {
+  return filteredScheduleRows.value.map((row) => {
     const exportRow = { 轮次: row.round };
     props.venues.forEach((venue) => {
       const match = row.matchesByVenue[venue.id];
@@ -428,7 +476,26 @@ function exportCurrent() {
 <template>
   <section class="tables-grid single-table-grid">
     <a-card :bordered="false">
-      <template #title>{{ title }}</template>
+      <template #title>
+        <div class="schedule-card-title">
+          <span>{{ title }}</span>
+          <div class="schedule-status-filter-options" role="group" aria-label="按比赛状态筛选">
+            <button
+              v-for="option in statusFilterOptions"
+              :key="option.value"
+              type="button"
+              :class="[
+                'schedule-status-filter-button',
+                { 'is-active': activeStatusFilters.includes(option.value) },
+              ]"
+              :aria-pressed="activeStatusFilters.includes(option.value)"
+              @click="toggleStatusFilter(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+      </template>
       <template #extra>
         <div class="table-tools">
           <a-segmented
@@ -440,7 +507,7 @@ function exportCurrent() {
             <template #icon><DownloadOutlined /></template>
             导出计划表
           </a-button>
-          <a-button size="small" @click="exportCurrent">
+          <a-button size="small" :disabled="filteredScheduleRows.length === 0" @click="exportCurrent">
             <template #icon><DownloadOutlined /></template>
             导出当前视图
           </a-button>
@@ -449,8 +516,9 @@ function exportCurrent() {
 
       <a-table
         :columns="scheduleColumns"
-        :data-source="visibleScheduleRows"
+        :data-source="filteredScheduleRows"
         :pagination="false"
+        :locale="{ emptyText: '当前筛选条件下暂无比赛' }"
         row-key="round"
         size="middle"
         class="schedule-matrix-table"
@@ -510,14 +578,30 @@ function exportCurrent() {
                   :class="['schedule-team-name', { 'is-retired-team': isRetiredTeam(record.matchesByVenue[column.key].teamA) }]"
                   :title="record.matchesByVenue[column.key].teamA.name"
                 >
-                  {{ record.matchesByVenue[column.key].teamA.name }}
+                  <span
+                    v-if="isWinningSide(record.matchesByVenue[column.key], 'A')"
+                    class="schedule-winner-mark"
+                    title="胜方"
+                    aria-label="胜方"
+                  >
+                    <TrophyOutlined />
+                  </span>
+                  <span class="schedule-team-text">{{ record.matchesByVenue[column.key].teamA.name }}</span>
                 </strong>
                 <span class="schedule-vs" aria-label="对阵">VS</span>
                 <strong
                   :class="['schedule-team-name', { 'is-retired-team': isRetiredTeam(record.matchesByVenue[column.key].teamB) }]"
                   :title="record.matchesByVenue[column.key].teamB.name"
                 >
-                  {{ record.matchesByVenue[column.key].teamB.name }}
+                  <span
+                    v-if="isWinningSide(record.matchesByVenue[column.key], 'B')"
+                    class="schedule-winner-mark"
+                    title="胜方"
+                    aria-label="胜方"
+                  >
+                    <TrophyOutlined />
+                  </span>
+                  <span class="schedule-team-text">{{ record.matchesByVenue[column.key].teamB.name }}</span>
                 </strong>
               </div>
               <span
@@ -542,7 +626,7 @@ function exportCurrent() {
 
       <div class="schedule-mobile-list">
         <article
-          v-for="row in visibleScheduleRows"
+          v-for="row in filteredScheduleRows"
           :key="row.round"
           class="schedule-mobile-round"
         >
@@ -598,14 +682,30 @@ function exportCurrent() {
                     :class="['schedule-team-name', { 'is-retired-team': isRetiredTeam(row.matchesByVenue[venue.id].teamA) }]"
                     :title="row.matchesByVenue[venue.id].teamA.name"
                   >
-                    {{ row.matchesByVenue[venue.id].teamA.name }}
+                    <span
+                      v-if="isWinningSide(row.matchesByVenue[venue.id], 'A')"
+                      class="schedule-winner-mark"
+                      title="胜方"
+                      aria-label="胜方"
+                    >
+                      <TrophyOutlined />
+                    </span>
+                    <span class="schedule-team-text">{{ row.matchesByVenue[venue.id].teamA.name }}</span>
                   </strong>
                   <span class="schedule-vs" aria-label="对阵">VS</span>
                   <strong
                     :class="['schedule-team-name', { 'is-retired-team': isRetiredTeam(row.matchesByVenue[venue.id].teamB) }]"
                     :title="row.matchesByVenue[venue.id].teamB.name"
                   >
-                    {{ row.matchesByVenue[venue.id].teamB.name }}
+                    <span
+                      v-if="isWinningSide(row.matchesByVenue[venue.id], 'B')"
+                      class="schedule-winner-mark"
+                      title="胜方"
+                      aria-label="胜方"
+                    >
+                      <TrophyOutlined />
+                    </span>
+                    <span class="schedule-team-text">{{ row.matchesByVenue[venue.id].teamB.name }}</span>
                   </strong>
                 </div>
                 <span
@@ -627,6 +727,11 @@ function exportCurrent() {
             </div>
           </div>
         </article>
+        <a-empty
+          v-if="filteredScheduleRows.length === 0"
+          class="schedule-mobile-filter-empty"
+          description="当前筛选条件下暂无比赛"
+        />
       </div>
 
       <a-modal
@@ -646,9 +751,29 @@ function exportCurrent() {
         <div v-if="selectedMatch" class="match-detail-modal">
           <div class="match-detail-header">
             <div class="match-detail-pairing">
-              <strong :title="selectedMatch.teamA.name">{{ selectedMatch.teamA.name }}</strong>
-              <span>VS</span>
-              <strong :title="selectedMatch.teamB.name">{{ selectedMatch.teamB.name }}</strong>
+              <div class="match-detail-team">
+                <span
+                  v-if="isWinningSide(selectedMatch, 'A')"
+                  class="schedule-winner-mark"
+                  title="胜方"
+                  aria-label="胜方"
+                >
+                  <TrophyOutlined />
+                </span>
+                <strong :title="selectedMatch.teamA.name">{{ selectedMatch.teamA.name }}</strong>
+              </div>
+              <span class="match-detail-vs">VS</span>
+              <div class="match-detail-team">
+                <span
+                  v-if="isWinningSide(selectedMatch, 'B')"
+                  class="schedule-winner-mark"
+                  title="胜方"
+                  aria-label="胜方"
+                >
+                  <TrophyOutlined />
+                </span>
+                <strong :title="selectedMatch.teamB.name">{{ selectedMatch.teamB.name }}</strong>
+              </div>
             </div>
             <div v-if="selectedMatch.stage === 'playoff'" class="match-detail-tags">
               <a-tag color="purple">
