@@ -751,12 +751,6 @@ input {
   line-height: 1.32;
   font-weight: 750;
   overflow: hidden;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 .venue-team-name:first-child {
@@ -1311,8 +1305,13 @@ input {
   overflow: hidden;
 }
 
-.schedule-team-text {
+.team-name-content {
   min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
+}
+
+.team-name-content:not(.is-split) {
   overflow: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -1320,6 +1319,20 @@ input {
   line-clamp: 2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.team-name-content.is-split {
+  width: 100%;
+  display: grid;
+  overflow: hidden;
+}
+
+.team-name-line {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .schedule-team-name:first-child {
@@ -1542,16 +1555,12 @@ input {
 
 .match-detail-team strong {
   min-width: 0;
+  max-height: 2.8em;
   color: #0f2f4d;
   font-size: 15px;
   line-height: 1.4;
   font-weight: 750;
   overflow: hidden;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 .match-detail-team:first-child strong {

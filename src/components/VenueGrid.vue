@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons-vue';
 import { formatTime } from '../utils/format';
 import { getTeamIds } from '../utils/schedule';
+import TeamNameText from './TeamNameText.vue';
 
 const props = defineProps({
   stage: { type: String, default: 'league' },
@@ -101,12 +102,18 @@ function getStageRibbonClass(match) {
             </a-tag>
           </div>
           <div class="venue-matchup">
-            <strong class="venue-team-name" :title="getMatchById(venue.currentMatchId).teamA.name">
-              {{ getMatchById(venue.currentMatchId).teamA.name }}
+            <strong
+              class="venue-team-name"
+              :title="getMatchById(venue.currentMatchId).teamA.name"
+            >
+              <TeamNameText :name="getMatchById(venue.currentMatchId).teamA.name" />
             </strong>
             <span class="venue-vs" aria-label="对阵">VS</span>
-            <strong class="venue-team-name" :title="getMatchById(venue.currentMatchId).teamB.name">
-              {{ getMatchById(venue.currentMatchId).teamB.name }}
+            <strong
+              class="venue-team-name"
+              :title="getMatchById(venue.currentMatchId).teamB.name"
+            >
+              <TeamNameText :name="getMatchById(venue.currentMatchId).teamB.name" />
             </strong>
           </div>
           <p>开始时间：{{ formatTime(getMatchById(venue.currentMatchId).startedAt) }}</p>
@@ -139,12 +146,18 @@ function getStageRibbonClass(match) {
             <span>推荐下一场</span>
           </div>
           <div class="venue-matchup">
-            <strong class="venue-team-name" :title="getRecommendedMatch(venue).teamA.name">
-              {{ getRecommendedMatch(venue).teamA.name }}
+            <strong
+              class="venue-team-name"
+              :title="getRecommendedMatch(venue).teamA.name"
+            >
+              <TeamNameText :name="getRecommendedMatch(venue).teamA.name" />
             </strong>
             <span class="venue-vs" aria-label="对阵">VS</span>
-            <strong class="venue-team-name" :title="getRecommendedMatch(venue).teamB.name">
-              {{ getRecommendedMatch(venue).teamB.name }}
+            <strong
+              class="venue-team-name"
+              :title="getRecommendedMatch(venue).teamB.name"
+            >
+              <TeamNameText :name="getRecommendedMatch(venue).teamB.name" />
             </strong>
           </div>
           <p>计划场地：{{ getVenueName(getRecommendedMatch(venue).plannedVenueId) }}</p>

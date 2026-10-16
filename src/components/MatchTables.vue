@@ -3,6 +3,7 @@
 import { computed, ref } from 'vue';
 import { DownloadOutlined, TrophyOutlined } from '@ant-design/icons-vue';
 import { formatTime, getPairing } from '../utils/format';
+import TeamNameText from './TeamNameText.vue';
 
 const props = defineProps({
   title: { type: String, default: '总赛程表' },
@@ -586,7 +587,7 @@ function exportCurrent() {
                   >
                     <TrophyOutlined />
                   </span>
-                  <span class="schedule-team-text">{{ record.matchesByVenue[column.key].teamA.name }}</span>
+                  <TeamNameText :name="record.matchesByVenue[column.key].teamA.name" />
                 </strong>
                 <span class="schedule-vs" aria-label="对阵">VS</span>
                 <strong
@@ -601,7 +602,7 @@ function exportCurrent() {
                   >
                     <TrophyOutlined />
                   </span>
-                  <span class="schedule-team-text">{{ record.matchesByVenue[column.key].teamB.name }}</span>
+                  <TeamNameText :name="record.matchesByVenue[column.key].teamB.name" />
                 </strong>
               </div>
               <span
@@ -690,7 +691,7 @@ function exportCurrent() {
                     >
                       <TrophyOutlined />
                     </span>
-                    <span class="schedule-team-text">{{ row.matchesByVenue[venue.id].teamA.name }}</span>
+                    <TeamNameText :name="row.matchesByVenue[venue.id].teamA.name" />
                   </strong>
                   <span class="schedule-vs" aria-label="对阵">VS</span>
                   <strong
@@ -705,7 +706,7 @@ function exportCurrent() {
                     >
                       <TrophyOutlined />
                     </span>
-                    <span class="schedule-team-text">{{ row.matchesByVenue[venue.id].teamB.name }}</span>
+                    <TeamNameText :name="row.matchesByVenue[venue.id].teamB.name" />
                   </strong>
                 </div>
                 <span
@@ -760,7 +761,9 @@ function exportCurrent() {
                 >
                   <TrophyOutlined />
                 </span>
-                <strong :title="selectedMatch.teamA.name">{{ selectedMatch.teamA.name }}</strong>
+                <strong :title="selectedMatch.teamA.name">
+                  <TeamNameText :name="selectedMatch.teamA.name" />
+                </strong>
               </div>
               <span class="match-detail-vs">VS</span>
               <div class="match-detail-team">
@@ -772,7 +775,9 @@ function exportCurrent() {
                 >
                   <TrophyOutlined />
                 </span>
-                <strong :title="selectedMatch.teamB.name">{{ selectedMatch.teamB.name }}</strong>
+                <strong :title="selectedMatch.teamB.name">
+                  <TeamNameText :name="selectedMatch.teamB.name" />
+                </strong>
               </div>
             </div>
             <div v-if="selectedMatch.stage === 'playoff'" class="match-detail-tags">
