@@ -144,6 +144,18 @@ function formatExcelTextCell(value) {
   return escapedText;
 }
 
+function setExportTeamName(element, fullName) {
+  const parts = String(fullName ?? '').split('/');
+  const fragment = element.ownerDocument.createDocumentFragment();
+
+  parts.forEach((part, index) => {
+    if (index > 0) fragment.appendChild(element.ownerDocument.createElement('br'));
+    fragment.appendChild(element.ownerDocument.createTextNode(part.trim()));
+  });
+
+  element.replaceChildren(fragment);
+}
+
 async function exportResultImage() {
   try {
     await exportElementAsPng(rankingExportRef.value, `排名对战表-${new Date().toISOString().slice(0, 10)}.png`, {
@@ -151,6 +163,14 @@ async function exportResultImage() {
       width: exportImageWidth.value,
       onClone: (clone) => {
         clone.querySelector('.ranking-tools')?.remove();
+        clone.querySelectorAll('.ranking-column-team-name[title]').forEach((name) => {
+          setExportTeamName(name, name.getAttribute('title'));
+        });
+        clone.querySelectorAll('.ranking-team-name[title]').forEach((name) => {
+          const fullName = name.getAttribute('title');
+          const nameText = name.querySelector('strong');
+          if (nameText) setExportTeamName(nameText, fullName);
+        });
       },
       extraCss: `
         .ranking-result-export .matrix-table th:last-child,
@@ -163,6 +183,15 @@ async function exportResultImage() {
         }
         .ranking-result-export .ranking-mobile-list {
           display: none !important;
+        }
+        .ranking-result-export .ranking-column-team-name,
+        .ranking-result-export .ranking-team-name strong {
+          max-width: none !important;
+          overflow: visible !important;
+          text-overflow: clip !important;
+          white-space: normal !important;
+          overflow-wrap: anywhere !important;
+          word-break: break-word !important;
         }
         .ranking-result-export .ant-table-wrapper,
         .ranking-result-export .ant-table-container,
